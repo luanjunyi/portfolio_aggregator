@@ -7,7 +7,7 @@ import asyncio
 import sys
 from typing import Dict, Any
 
-from crawlers.test_crawler import SandboxCrawler
+from crawlers.sandbox_crawler import SandboxCrawler
 from storage.database import DatabaseManager
 
 
@@ -54,6 +54,8 @@ async def test_crawler():
         
         if result.error_message:
             print(f"  Error: {result.error_message}")
+
+        input("Press Enter to continue...")
     
     return result.success
 

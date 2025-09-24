@@ -33,7 +33,7 @@ class SandboxCrawler(BaseCrawler):
         print(f"[{self.broker_name}] Using credentials for user: {credentials['username']}")
         
         # Simulate some delay
-        await asyncio.sleep(2)
+        await asyncio.sleep(1)
         
         # Simulate successful login
         print(f"[{self.broker_name}] Login successful!")

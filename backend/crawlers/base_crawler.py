@@ -24,6 +24,7 @@ class BaseCrawler(ABC):
         self.browser: Optional[Browser] = None
         self.context: Optional[BrowserContext] = None
         self.page: Optional[Page] = None
+        self.attached_to_remote = False
         
     async def __aenter__(self):
         """Async context manager entry"""
@@ -32,16 +33,73 @@ class BaseCrawler(ABC):
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit"""
-        await self._cleanup_browser()
     
     async def _setup_browser(self):
         """Initialize Playwright browser with enhanced stealth measures"""
         self.playwright = await async_playwright().start()
         
-        # Enhanced browser launch with stealth measures
-        self.browser = await self.playwright.chromium.launch(
+        # Optionally attach to an existing Chrome instance via CDP
+        cdp_url = os.environ.get('CHROME_REMOTE_DEBUG_URL') or os.environ.get('PLAYWRIGHT_CDP_URL')
+        if cdp_url:
+            print(f"Attaching to existing Chrome over CDP at {cdp_url}")
+            self.attached_to_remote = True
+            self.browser = await self.playwright.chromium.connect_over_cdp(cdp_url)
+            if self.browser.contexts:
+                self.context = self.browser.contexts[0]
+            else:
+                self.context = await self.browser.new_context()
+            if self.context.pages:
+                self.page = self.context.pages[0]
+            else:
+                self.page = await self.context.new_page()
+            await self.page.bring_to_front()
+            await self._apply_stealth_scripts()
+            return
+
+        # Detect local Chrome installation
+        chrome_paths = [
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+            '/Applications/Google Chrome Beta.app/Contents/MacOS/Google Chrome Beta',
+            '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary',
+            '/usr/bin/google-chrome',
+            '/usr/bin/chrome'
+        ]
+        chrome_executable = next((path for path in chrome_paths if os.path.exists(path)), None)
+        if not chrome_executable:
+            raise RuntimeError("Unable to locate a Chrome executable. Please install Google Chrome.")
+
+        # Resolve the user's Chrome profile directory
+        default_profile_root_candidates = [
+            os.path.expanduser('~/Library/Application Support/Google/Chrome'),  # macOS
+            os.path.expanduser('~/Library/Application Support/Chrome'),         # Alternate macOS
+            os.path.expanduser('~/.config/google-chrome'),                      # Linux
+            os.path.expanduser('~/.config/chrome')                              # Alternate Linux
+        ]
+        chrome_user_data_dir = next((path for path in default_profile_root_candidates if os.path.exists(path)), None)
+        if not chrome_user_data_dir:
+            raise RuntimeError("Unable to locate Chrome user data directory.")
+
+        profile_name = os.environ.get('CHROME_PROFILE_NAME', 'Default')
+        profile_path = os.path.join(chrome_user_data_dir, profile_name)
+        if not os.path.exists(profile_path):
+            raise RuntimeError(f"Chrome profile '{profile_name}' not found at {profile_path}.")
+
+        singleton_lock = os.path.join(chrome_user_data_dir, 'SingletonLock')
+        if os.path.exists(singleton_lock):
+            raise RuntimeError(
+                "Chrome appears to be running with this profile. Please close all Chrome windows before running the crawler."
+            )
+
+        print(f"Using local Chrome: {chrome_executable}")
+        print(f"Using Chrome profile: {profile_path}")
+
+        # Launch persistent context so we inherit the real profile (extensions, cookies, etc.)
+        self.context = await self.playwright.chromium.launch_persistent_context(
+            user_data_dir=chrome_user_data_dir,
+            executable_path=chrome_executable,
             headless=self.headless,
             args=[
+                f'--profile-directory={profile_name}',
                 '--no-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-blink-features=AutomationControlled',
@@ -56,58 +114,63 @@ class BaseCrawler(ABC):
                 '--no-default-browser-check',
                 '--no-first-run',
                 '--disable-default-apps',
+                '--remote-debugging-port=0',
                 '--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-            ]
-        )
-        
-        # Create context with enhanced settings
-        context_options = {
-            'viewport': {'width': 768, 'height': 1024},
-            'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-            'locale': 'en-US',
-            'timezone_id': 'America/Los_Angeles',
-            'extra_http_headers': {
+            ],
+            viewport={'width': 1920, 'height': 1080},
+            user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            locale='en-US',
+            timezone_id='America/Los_Angeles',
+            extra_http_headers={
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Accept-Encoding': 'gzip, deflate, br',
                 'DNT': '1',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
                 'Sec-Fetch-Dest': 'document',
                 'Sec-Fetch-Mode': 'navigate',
                 'Sec-Fetch-Site': 'none',
                 'Sec-Fetch-User': '?1',
-                'Cache-Control': 'max-age=0'
+                'Upgrade-Insecure-Requests': '1'
             }
-        }
+        )
+
+        # Keep browser handle for compatibility with existing code
+        self.browser = self.context.browser
+
+        # Reuse existing page if one already exists (Chrome restores tabs); otherwise create one
+        if self.context.pages:
+            self.page = self.context.pages[0]
+            await self.page.bring_to_front()
+        else:
+            self.page = await self.context.new_page()
+
+        await self._apply_stealth_scripts()
         
-        # Load stored session if available
-        session_data = self.db_manager.get_session(self.broker_name)
-        if session_data and session_data.get('session_data'):
-            stored_session = session_data['session_data']
-            if 'cookies' in stored_session and stored_session['cookies']:
-                try:
-                    # Check if session is still valid (not expired)
-                    expires_at = session_data.get('expires_at')
-                    if expires_at:
-                        expiry_time = datetime.fromisoformat(expires_at)
-                        if datetime.now() > expiry_time:
-                            print(f"[{self.broker_name}] Stored session has expired, clearing...")
-                            self.db_manager.clear_session(self.broker_name)
-                        else:
-                            context_options['storage_state'] = stored_session
-                            print(f"[{self.broker_name}] Loaded stored session with {len(stored_session['cookies'])} cookies")
-                    else:
-                        context_options['storage_state'] = stored_session
-                        print(f"[{self.broker_name}] Loaded stored session with {len(stored_session['cookies'])} cookies")
-                except Exception as e:
-                    print(f"[{self.broker_name}] Failed to load session: {e}")
-                    self.db_manager.clear_session(self.broker_name)
-        
-        self.context = await self.browser.new_context(**context_options)
-        self.page = await self.context.new_page()
-        
-        # Enhanced stealth measures
+        # Set up request/response logging (disabled for cleaner output)
+        # self.page.on('request', self._log_request)
+        # self.page.on('response', self._log_response)
+    
+    async def _cleanup_browser(self):
+        """Clean up browser resources"""
+        if self.attached_to_remote:
+            if hasattr(self, 'playwright'):
+                await self.playwright.stop()
+            return
+
+        if self.page:
+            await self.page.close()
+        if self.context:
+            await self.context.close()
+        if self.browser:
+            await self.browser.close()
+        if hasattr(self, 'playwright'):
+            await self.playwright.stop()
+
+    async def _apply_stealth_scripts(self):
+        """Inject scripts to reduce automation detection."""
+        if not self.page:
+            return
+
         await self.page.add_init_script("""
             // Remove webdriver property
             Object.defineProperty(navigator, 'webdriver', {
@@ -149,21 +212,6 @@ class BaseCrawler(ABC):
                 get: () => 8,
             });
         """)
-        
-        # Set up request/response logging (disabled for cleaner output)
-        # self.page.on('request', self._log_request)
-        # self.page.on('response', self._log_response)
-    
-    async def _cleanup_browser(self):
-        """Clean up browser resources"""
-        if self.page:
-            await self.page.close()
-        if self.context:
-            await self.context.close()
-        if self.browser:
-            await self.browser.close()
-        if hasattr(self, 'playwright'):
-            await self.playwright.stop()
     
     def _log_request(self, request):
         """Log outgoing requests for debugging"""
@@ -241,6 +289,69 @@ class BaseCrawler(ABC):
     def parse_html_with_soup(self, html: str) -> BeautifulSoup:
         """Parse HTML content with BeautifulSoup"""
         return BeautifulSoup(html, 'lxml')
+    
+    async def human_type(self, selector: str, text: str, delay_range: tuple = (50, 150)):
+        """Type text in a human-like manner to bypass detection"""
+        import random
+        
+        element = await self.page.query_selector(selector)
+        if not element:
+            raise Exception(f"Element not found: {selector}")
+        
+        # Clear the field first by selecting all and deleting
+        await element.click()
+        await self.page.keyboard.press('Meta+a')  # Cmd+A on Mac
+        await asyncio.sleep(random.uniform(0.1, 0.3))
+        
+        # Type each character with human-like delays
+        for char in text:
+            await self.page.keyboard.type(char)
+            # Random delay between keystrokes (50-150ms)
+            delay = random.uniform(delay_range[0], delay_range[1]) / 1000
+            await asyncio.sleep(delay)
+        
+        # Small pause after typing
+        await asyncio.sleep(random.uniform(0.2, 0.5))
+    
+    async def human_click(self, selector: str):
+        """Click in a human-like manner with random delays"""
+        import random
+        
+        # Small delay before clicking
+        await asyncio.sleep(random.uniform(0.1, 0.3))
+        
+        element = await self.page.query_selector(selector)
+        if not element:
+            raise Exception(f"Element not found: {selector}")
+        
+        # Get element bounds for more realistic clicking
+        box = await element.bounding_box()
+        if box:
+            # Click at a random point within the element (not center)
+            x = box['x'] + random.uniform(0.2, 0.8) * box['width']
+            y = box['y'] + random.uniform(0.2, 0.8) * box['height']
+            await self.page.mouse.click(x, y)
+        else:
+            # Fallback to regular click
+            await element.click()
+        
+        # Small delay after clicking
+        await asyncio.sleep(random.uniform(0.1, 0.3))
+    
+    async def simulate_human_behavior(self):
+        """Simulate human-like behavior before interacting with forms"""
+        import random
+        
+        # Random mouse movements
+        for _ in range(random.randint(2, 4)):
+            x = random.randint(100, 700)
+            y = random.randint(100, 600)
+            await self.page.mouse.move(x, y)
+            await asyncio.sleep(random.uniform(0.1, 0.3))
+        
+        # Random scroll
+        await self.page.mouse.wheel(0, random.randint(-200, 200))
+        await asyncio.sleep(random.uniform(0.2, 0.5))
     
     @abstractmethod
     async def login(self) -> bool:

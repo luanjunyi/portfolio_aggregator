@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script for Chase crawler
+Run Merrill Edge crawler
 """
 
 import asyncio
@@ -10,28 +10,28 @@ import os
 # Add the backend directory to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from crawlers.chase_crawler import ChaseCrawler
+from crawlers.merrill_crawler import MerrillCrawler
 from storage.database import DatabaseManager
 
 
-async def run_chase_crawler():
-    """Run the Chase crawler"""
-    print("=== Running Chase Crawler ===")
+async def run_merrill_crawler():
+    """Run the Merrill crawler"""
+    print("=== Running Merrill Crawler ===")
     
     # Check if credentials exist
     db = DatabaseManager()
-    creds = db.get_credentials("chase")
+    creds = db.get_credentials("merrill_edge")
     
     if not creds:
-        print("❌ No Chase credentials found!")
-        print("Please run: python add_chase_credentials.py")
+        print("❌ No Merrill credentials found!")
+        print("Please run: python add_merrill_credentials.py")
         return False
     
     print(f"✅ Found credentials for user: {creds['username']}")
     
     # Test crawler with headless=False so you can see what's happening
-    async with ChaseCrawler(headless=False) as crawler:
-        print("\n🚀 Starting Chase crawl...")
+    async with MerrillCrawler(headless=False) as crawler:
+        print("\n🚀 Starting Merrill crawl...")
         result = await crawler.crawl()
         
         print(f"\n📊 Crawl Results:")
@@ -66,19 +66,18 @@ async def run_chase_crawler():
 
 async def main():
     """Main test function"""
-    print("Chase Crawler Test")
+    print("Merrill Crawler Test")
     print("=" * 30)
     
-    success = await run_chase_crawler()
+    success = await run_merrill_crawler()
     
     if success:
-        print("\n✅ Chase crawler test completed successfully!")
+        print("\n✅ Merrill crawler test completed successfully!")
     else:
-        print("\n❌ Chase crawler test failed!")
+        print("\n❌ Merrill crawler test failed!")
     
     return 0 if success else 1
 
 
 if __name__ == "__main__":
     exit_code = asyncio.run(main())
-    sys.exit(exit_code)

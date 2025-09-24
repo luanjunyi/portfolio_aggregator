@@ -25,7 +25,7 @@ def add_credentials():
         print("Error: Username is required")
         return False
     
-    password = getpass.getpass("Password: ")
+    password = input("Password: ").strip()
     if not password:
         print("Error: Password is required")
         return False
@@ -56,7 +56,7 @@ def list_credentials():
         if creds:
             print(f"\n📊 {broker}")
             print(f"   Username: {creds['username']}")
-            print(f"   Password: {'*' * len(creds['password'])}")
+            print(f"   Password: {creds['password']}")
 
 
 def delete_credentials():
