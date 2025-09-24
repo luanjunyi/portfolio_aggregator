@@ -10,7 +10,7 @@ from crawlers.base_crawler import BaseCrawler
 from models.portfolio import Holding
 
 
-class TestCrawler(BaseCrawler):
+class SandboxCrawler(BaseCrawler):
     """Test crawler for development and testing purposes"""
     
     def __init__(self, headless: bool = True):

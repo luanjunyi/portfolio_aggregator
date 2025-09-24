@@ -7,7 +7,7 @@ import asyncio
 import sys
 from typing import Dict, Any
 
-from crawlers.test_crawler import TestCrawler
+from crawlers.test_crawler import SandboxCrawler
 from storage.database import DatabaseManager
 
 
@@ -35,7 +35,7 @@ async def test_crawler():
     """Test the crawler functionality"""
     print("\n=== Testing Crawler ===")
     
-    async with TestCrawler(headless=False) as crawler:
+    async with SandboxCrawler(headless=False) as crawler:
         result = await crawler.crawl()
         
         print(f"Crawl Result:")
