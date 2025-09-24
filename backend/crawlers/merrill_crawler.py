@@ -29,18 +29,11 @@ class MerrillCrawler(BaseCrawler):
     
     async def scrape_portfolio(self) -> List[Holding]:
         """Scrape holdings from Merrill Edge"""
-        print(f"[{self.broker_name}] Starting Merrill holdings scrape...")
-        
-        # Login (navigation is handled inside login method)
-        if not await self.login():
-            print(f"[{self.broker_name}] Login failed")
-            return []
-        
+        print(f"[{self.broker_name}] Starting Merrill holdings scrape...")      
         print(f"[{self.broker_name}] Navigating to portfolio page...")
         
         # Navigate to the portfolio page that shows all holdings
         await self.page.goto(self.portfolio_url, wait_until='networkidle')
-        await asyncio.sleep(5)
         
         # Get page HTML
         html = await self.page.content()
@@ -58,11 +51,13 @@ class MerrillCrawler(BaseCrawler):
         
         # First check if we're already logged in with a valid session
         try:
-            await self.page.goto(self.login_url, wait_until='networkidle')
+            await self.page.goto(self.login_url, wait_until='domcontentloaded')
+            # Give the browser a chance to follow any automatic redirect
+            await self.page.wait_for_load_state('networkidle', timeout=15000)
+            await asyncio.sleep(2)
+
             current_url = self.page.url
-            
-            # If we're already on the main page, we're logged in
-            if "TFPHoldings" in current_url.lower():
+            if "tfpholdings" in current_url.lower():
                 print(f"[{self.broker_name}] Already logged in with stored session!")
                 return True
         except Exception:
@@ -85,11 +80,13 @@ class MerrillCrawler(BaseCrawler):
             # Wait for the SPA to load the login form dynamically
             print(f"[{self.broker_name}] Waiting for login form to load...")
             
-            # Wait for the main content area to be populated
-            await self.page.wait_for_selector('#mainContent', timeout=30000)
             
             # Wait a bit more for JavaScript to render the form
             await asyncio.sleep(5)
+
+            if "/TFPHoldings/" in self.page.url.lower():
+                print(f"[{self.broker_name}] Already logged in with stored session!")
+                return True
 
             await self.page.mouse.move(100, 100)
             
@@ -217,29 +214,10 @@ class MerrillCrawler(BaseCrawler):
                 print(f"[{self.broker_name}] Could not find login button")
                 return False
             
-            # Wait for navigation after login
-            await asyncio.sleep(5)
-            
             # Check for 2FA or security questions
             await self.handle_2fa_if_needed()
             
-            # Wait for main page URL
-            try:
-                print(f"[{self.broker_name}] Waiting for main page to load...")
-                await self.page.wait_for_url("**/main**", timeout=5 * 60000)
-            except Exception:
-                print(f"[{self.broker_name}] Timed out waiting for main page URL")
-            
-            # Check if we're successfully logged in
-            current_url = self.page.url
-            if "main" in current_url.lower() or "dashboard" in current_url.lower():
-                print(f"[{self.broker_name}] Login successful - reached main page!")
-                # Save session for future use
-                await self.save_session()
-                return True
-            else:
-                print(f"[{self.broker_name}] Login failed - reached URL: {current_url}, expected main page")
-                return False
+            return True
                 
         except Exception as e:
             print(f"[{self.broker_name}] Login failed: {e}")
@@ -247,62 +225,6 @@ class MerrillCrawler(BaseCrawler):
     
     async def handle_2fa_if_needed(self) -> bool:
         """Handle 2FA if required"""
-        # Check if we're on a 2FA page
-        is_2fa_required = False
-        
-        # Check main page content for 2FA indicators
-        page_content = await self.page.content()
-        if any(phrase in page_content.lower() for phrase in [
-            "verification code",
-            "security code",
-            "two-factor",
-            "2fa",
-            "authenticate",
-            "verify your identity"
-        ]):
-            is_2fa_required = True
-        
-        if not is_2fa_required:
-            # No 2FA required, we're good to go
-            print(f"[{self.broker_name}] No 2FA required, we're good to go!")
-            return True
-        
-        # 2FA is required
-        print(f"[{self.broker_name}] 2FA detected! Please complete authentication in the browser.")
-        print(f"[{self.broker_name}] Waiting for you to complete 2FA...")
-        
-        # Wait for user to complete 2FA (up to 10 minutes)
-        max_wait_time = 10 * 60  # 10 minutes
-        start_time = asyncio.get_event_loop().time()
-        
-        while True:
-            await asyncio.sleep(5)
-            current_time = asyncio.get_event_loop().time()
-            elapsed_time = int(current_time - start_time)
-            
-            # Check if we've moved past the 2FA page
-            current_url = self.page.url
-            page_content = await self.page.content()
-            
-            # If we're on main page or no longer see 2FA content, we're done
-            if ("main" in current_url.lower() or 
-                not any(phrase in page_content.lower() for phrase in [
-                    "verification code", "security code", "two-factor", "2fa"
-                ])):
-                print(f"[{self.broker_name}] 2FA completed successfully!")
-                return True
-            
-            # Check timeout
-            if elapsed_time >= max_wait_time:
-                break
-            
-            # Show progress every 30 seconds
-            if elapsed_time % 30 == 0:
-                remaining = (max_wait_time - elapsed_time) // 60
-                print(f"⏳ Still waiting for 2FA completion... ({remaining} minutes remaining)")
-                print(f"   Current URL: {current_url}")
-        
-        print(f"⏰ [{self.broker_name}] 2FA timeout after {max_wait_time//60} minutes")
         return False
     
     async def parse_portfolio_html(self, html: str) -> List[Holding]:
@@ -312,88 +234,84 @@ class MerrillCrawler(BaseCrawler):
         soup = self.parse_html_with_soup(html)
         holdings = []
         
-        # Look for Merrill Edge portfolio table (will need to be updated based on actual HTML structure)
-        # This is a placeholder - we'll need to inspect the actual HTML to find the right selectors
-        portfolio_table = soup.find('table', {'class': 'holdings-table'}) or \
-                         soup.find('table', {'id': 'holdings'}) or \
-                         soup.find('table')  # fallback to any table
-        
-        if not portfolio_table:
-            print(f"[{self.broker_name}] Merrill portfolio table not found")
-            # Save HTML for debugging
-            debug_file = f"merrill_debug_all_holdings.html"
+        tables = soup.find_all('table', id=re.compile(r'^CustomGrid_'))
+
+        if not tables:
+            print(f"[{self.broker_name}] Merrill holdings tables not found")
+            debug_file = "merrill_debug_all_holdings.html"
             with open(debug_file, 'w', encoding='utf-8') as f:
                 f.write(html)
             print(f"[{self.broker_name}] Saved HTML to {debug_file} for analysis")
-            return holdings
+            return []
+
+        print(f"[{self.broker_name}] Found {len(tables)} holdings table(s)")
+
+        for table in tables:
+            tbody = table.find('tbody')
+            if not tbody:
+                continue
+
+            rows = tbody.find_all('tr')
+            for row in rows:
+                first_cell = row.find('td')
+                if first_cell:
+                    symbol_preview = first_cell.get_text(strip=True).lower()
+                    if 'balances' in symbol_preview:
+                        print(f"[{self.broker_name}] Reached balances section, stopping row parsing")
+                        break
+                try:
+                    holding = self._parse_position_row(row)
+                    if holding:
+                        holdings.append(holding)
+                except Exception as e:
+                    print(f"[{self.broker_name}] Error parsing row: {e}")
+            print(f"found {len(holdings)} holdings from table")
+
+        # Combine holdings by symbol
+        combined_holdings = self._combine_holdings_by_symbol(holdings)
         
-        print(f"[{self.broker_name}] Found Merrill portfolio table")
-        
-        # Find all position rows (will need to be updated based on actual HTML structure)
-        tbody = portfolio_table.find('tbody')
-        if not tbody:
-            print(f"[{self.broker_name}] No tbody found in portfolio table")
-            return holdings
-        
-        # Look for data rows (placeholder selectors - need to be updated)
-        position_rows = tbody.find_all('tr')
-        print(f"[{self.broker_name}] Found {len(position_rows)} rows")
-        
-        for row in position_rows:
-            try:
-                holding = self._parse_position_row(row)
-                if holding:
-                    holdings.append(holding)
-            except Exception as e:
-                print(f"[{self.broker_name}] Error parsing row: {e}")
-        
-        print(f"[{self.broker_name}] Successfully parsed {len(holdings)} holdings")
-        return holdings
+        print(f"[{self.broker_name}] Successfully parsed {len(holdings)} individual holdings")
+        print(f"[{self.broker_name}] Combined into {len(combined_holdings)} unique symbols")
+        return combined_holdings
     
     def _parse_position_row(self, row) -> Holding:
         """Parse a single position row from Merrill portfolio table"""
         cells = row.find_all('td')
-        if len(cells) < 5:  # Minimum expected columns
-            print(f"[{self.broker_name}] Row has insufficient cells: {len(cells)}")
+        if len(cells) < 11:
             return None
-        
+
         try:
-            # NOTE: These are placeholder column mappings
-            # Will need to be updated based on actual Merrill Edge HTML structure
-            
-            # Extract symbol (placeholder - column 0)
-            symbol = cells[0].get_text(strip=True) if cells[0] else "UNKNOWN"
-            
-            # Extract description (placeholder - column 1)
-            description = cells[1].get_text(strip=True) if cells[1] else ""
-            
-            # Extract quantity (placeholder - column 2)
-            quantity_text = cells[2].get_text(strip=True)
-            quantity = self._clean_decimal_text(quantity_text)
-            
-            # Extract price (placeholder - column 3)
-            price_text = cells[3].get_text(strip=True)
-            price = self._clean_decimal_text(price_text)
-            
-            # Extract market value (placeholder - column 4)
-            market_value_text = cells[4].get_text(strip=True)
-            market_value = self._clean_decimal_text(market_value_text)
-            current_value = market_value
-            
-            # Calculate unit cost from market value and quantity
-            if quantity != 0:
-                unit_cost = abs(market_value / quantity)
+            symbol_cell = cells[0]
+            symbol_link = symbol_cell.find('a')
+            if symbol_link:
+                symbol = symbol_link.get_text(" ", strip=True).split()[0]
             else:
-                raise ValueError(f"Cannot calculate unit cost: quantity is zero for {symbol}")
-            
-            # Placeholder values for fields that might not be available initially
-            cost_basis = market_value  # Will need to find actual cost basis
-            day_change_dollars = Decimal('0')  # Will need to find actual day change
-            day_change_percent = Decimal('0')  # Will need to calculate
-            unrealized_gain_loss = Decimal('0')  # Will need to find actual G/L
-            unrealized_gain_loss_percent = Decimal('0')  # Will need to calculate
-            
-            # Create holding object
+                symbol = symbol_cell.get_text(strip=True)
+
+            if not symbol:
+                raise ValueError("Missing symbol")
+
+            description = cells[2].get_text(" ", strip=True)
+            if not description:
+                raise ValueError(f"Missing description for symbol {symbol}")
+
+            day_change_dollars = self._extract_dollar_change(cells[3])
+            day_change_percent = self._extract_percentage_change(cells[3])
+
+            price = self._clean_decimal_text(cells[4].get_text(" ", strip=True))
+            quantity = self._clean_decimal_text(cells[5].get_text(strip=True))
+            unit_cost = self._clean_decimal_text(cells[6].get_text(strip=True))
+            cost_basis = self._clean_decimal_text(cells[7].get_text(strip=True))
+            current_value = self._clean_decimal_text(cells[8].get_text(strip=True))
+
+            unrealized_gain_loss = self._extract_dollar_change(cells[9])
+            unrealized_gain_loss_percent = self._extract_percentage_change(cells[9])
+
+            portfolio_percentage = None
+            portfolio_text = cells[10].get_text(strip=True)
+            if portfolio_text:
+                portfolio_percentage = self._clean_percentage_text(portfolio_text)
+
             holding = Holding(
                 broker="merrill",
                 symbol=symbol,
@@ -406,15 +324,30 @@ class MerrillCrawler(BaseCrawler):
                 day_change_percent=day_change_percent,
                 day_change_dollars=day_change_dollars,
                 unrealized_gain_loss=unrealized_gain_loss,
-                unrealized_gain_loss_percent=unrealized_gain_loss_percent
+                unrealized_gain_loss_percent=unrealized_gain_loss_percent,
+                portfolio_percentage=portfolio_percentage
             )
-            
-            print(f"[{self.broker_name}] Parsed holding: {symbol} - {quantity} shares @ ${price} = ${market_value}")
+
+            print(f"[{self.broker_name}] Parsed holding: {symbol} - {quantity} @ ${price} (value ${current_value})")
             return holding
-            
+
         except Exception as e:
             print(f"[{self.broker_name}] Error parsing position row: {e}")
             return None
+
+    def _extract_dollar_change(self, cell) -> Decimal:
+        target = cell.find('div', class_=lambda value: value and 'dol' in value.split())
+        text = (target.get_text(strip=True) if target else cell.get_text(strip=True))
+        if not text:
+            return Decimal('0')
+        return self._clean_decimal_text(text)
+
+    def _extract_percentage_change(self, cell) -> Decimal:
+        target = cell.find('div', class_=lambda value: value and 'per' in value.split())
+        text = (target.get_text(strip=True) if target else cell.get_text(strip=True))
+        if not text:
+            return Decimal('0')
+        return self._clean_percentage_text(text)
     
     def _clean_decimal_text(self, value_str: str) -> Decimal:
         """Clean text and extract decimal value, handling Merrill-specific formatting"""
@@ -434,7 +367,7 @@ class MerrillCrawler(BaseCrawler):
         cleaned = re.sub(r'[$,]', '', value_str)
         
         # Extract only the numeric part
-        number_match = re.search(r'-?\d+\.?\d*', cleaned)
+        number_match = re.search(r'[-+]?\d+\.?\d*', cleaned)
         if number_match:
             number_str = number_match.group()
             try:
@@ -493,3 +426,77 @@ class MerrillCrawler(BaseCrawler):
                 raise ValueError(f"Failed to convert percentage '{number_str}' to Decimal: {e}")
         
         raise ValueError(f"No valid percentage found in text: '{value_str}'")
+    
+    def _combine_holdings_by_symbol(self, holdings: List[Holding]) -> List[Holding]:
+        """Combine holdings with the same symbol by aggregating quantities and values"""
+        if not holdings:
+            return []
+        
+        # Group holdings by symbol
+        symbol_groups = {}
+        for holding in holdings:
+            symbol_groups.setdefault(holding.symbol, []).append(holding)
+        
+        combined_holdings = []
+        for symbol, group in symbol_groups.items():
+            combined_holdings.append(self._combine_symbol_group(symbol, group))
+        
+        return combined_holdings
+    
+    def _combine_symbol_group(self, symbol: str, holdings: List[Holding]) -> Holding:
+        """Combine multiple holdings of the same symbol"""
+        if not holdings:
+            raise ValueError(f"No holdings provided for symbol {symbol}")
+        
+        # Use the first holding as the base for description and other metadata
+        base_holding = holdings[0]
+        
+        # Aggregate quantities and values
+        total_quantity = sum(h.quantity for h in holdings)
+        total_cost_basis = sum(h.cost_basis for h in holdings)
+        total_current_value = sum(h.current_value for h in holdings)
+        total_day_change_dollars = sum(h.day_change_dollars for h in holdings)
+        total_unrealized_gain_loss = sum(h.unrealized_gain_loss for h in holdings)
+        
+        # Calculate weighted averages and derived values
+        if total_quantity != 0:
+            weighted_avg_price = total_current_value / total_quantity
+            weighted_avg_unit_cost = total_cost_basis / total_quantity
+        else:
+            weighted_avg_price = Decimal('0')
+            weighted_avg_unit_cost = Decimal('0')
+        
+        # Calculate percentages
+        day_change_percent = Decimal('0')
+        unrealized_gain_loss_percent = Decimal('0')
+        
+        if total_current_value != 0:
+            day_change_percent = total_day_change_dollars / (total_current_value - total_day_change_dollars)
+        
+        if total_cost_basis != 0:
+            unrealized_gain_loss_percent = total_unrealized_gain_loss / total_cost_basis
+        
+        # Sum portfolio percentages if available
+        portfolio_percentage = None
+        portfolio_percentages = [h.portfolio_percentage for h in holdings if h.portfolio_percentage is not None]
+        if portfolio_percentages:
+            portfolio_percentage = sum(portfolio_percentages)
+        
+        combined_holding = Holding(
+            broker=base_holding.broker,
+            symbol=symbol,
+            description=base_holding.description,
+            quantity=total_quantity,
+            price=weighted_avg_price,
+            unit_cost=weighted_avg_unit_cost,
+            cost_basis=total_cost_basis,
+            current_value=total_current_value,
+            day_change_percent=day_change_percent,
+            day_change_dollars=total_day_change_dollars,
+            unrealized_gain_loss=total_unrealized_gain_loss,
+            unrealized_gain_loss_percent=unrealized_gain_loss_percent,
+            portfolio_percentage=portfolio_percentage
+        )
+        
+        print(f"[{self.broker_name}] Combined {len(holdings)} holdings for {symbol}: {total_quantity} shares @ ${weighted_avg_price:.4f} = ${total_current_value}")
+        return combined_holding

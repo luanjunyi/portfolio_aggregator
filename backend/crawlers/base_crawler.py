@@ -2,6 +2,9 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 import asyncio
 import json
+import socket
+import contextlib
+import urllib.request
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
@@ -25,6 +28,9 @@ class BaseCrawler(ABC):
         self.context: Optional[BrowserContext] = None
         self.page: Optional[Page] = None
         self.attached_to_remote = False
+        self.chrome_process: Optional[asyncio.subprocess.Process] = None
+        self.chrome_remote_debug_url: Optional[str] = None
+        self.created_page = False
         
     async def __aenter__(self):
         """Async context manager entry"""
@@ -33,118 +39,20 @@ class BaseCrawler(ABC):
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit"""
+        await self._cleanup_browser()
     
     async def _setup_browser(self):
         """Initialize Playwright browser with enhanced stealth measures"""
         self.playwright = await async_playwright().start()
         
-        # Optionally attach to an existing Chrome instance via CDP
-        cdp_url = os.environ.get('CHROME_REMOTE_DEBUG_URL') or os.environ.get('PLAYWRIGHT_CDP_URL')
-        if cdp_url:
-            print(f"Attaching to existing Chrome over CDP at {cdp_url}")
-            self.attached_to_remote = True
-            self.browser = await self.playwright.chromium.connect_over_cdp(cdp_url)
-            if self.browser.contexts:
-                self.context = self.browser.contexts[0]
-            else:
-                self.context = await self.browser.new_context()
-            if self.context.pages:
-                self.page = self.context.pages[0]
-            else:
-                self.page = await self.context.new_page()
-            await self.page.bring_to_front()
-            await self._apply_stealth_scripts()
+        # Attempt to launch a dedicated automation Chrome instance
+        try:
+            cdp_url = await self._ensure_automation_chrome()
+            print(f"Launching automation Chrome and attaching over CDP at {cdp_url}")
+            await self._connect_over_cdp(cdp_url)
             return
-
-        # Detect local Chrome installation
-        chrome_paths = [
-            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-            '/Applications/Google Chrome Beta.app/Contents/MacOS/Google Chrome Beta',
-            '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary',
-            '/usr/bin/google-chrome',
-            '/usr/bin/chrome'
-        ]
-        chrome_executable = next((path for path in chrome_paths if os.path.exists(path)), None)
-        if not chrome_executable:
-            raise RuntimeError("Unable to locate a Chrome executable. Please install Google Chrome.")
-
-        # Resolve the user's Chrome profile directory
-        default_profile_root_candidates = [
-            os.path.expanduser('~/Library/Application Support/Google/Chrome'),  # macOS
-            os.path.expanduser('~/Library/Application Support/Chrome'),         # Alternate macOS
-            os.path.expanduser('~/.config/google-chrome'),                      # Linux
-            os.path.expanduser('~/.config/chrome')                              # Alternate Linux
-        ]
-        chrome_user_data_dir = next((path for path in default_profile_root_candidates if os.path.exists(path)), None)
-        if not chrome_user_data_dir:
-            raise RuntimeError("Unable to locate Chrome user data directory.")
-
-        profile_name = os.environ.get('CHROME_PROFILE_NAME', 'Default')
-        profile_path = os.path.join(chrome_user_data_dir, profile_name)
-        if not os.path.exists(profile_path):
-            raise RuntimeError(f"Chrome profile '{profile_name}' not found at {profile_path}.")
-
-        singleton_lock = os.path.join(chrome_user_data_dir, 'SingletonLock')
-        if os.path.exists(singleton_lock):
-            raise RuntimeError(
-                "Chrome appears to be running with this profile. Please close all Chrome windows before running the crawler."
-            )
-
-        print(f"Using local Chrome: {chrome_executable}")
-        print(f"Using Chrome profile: {profile_path}")
-
-        # Launch persistent context so we inherit the real profile (extensions, cookies, etc.)
-        self.context = await self.playwright.chromium.launch_persistent_context(
-            user_data_dir=chrome_user_data_dir,
-            executable_path=chrome_executable,
-            headless=self.headless,
-            args=[
-                f'--profile-directory={profile_name}',
-                '--no-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-blink-features=AutomationControlled',
-                '--disable-features=VizDisplayCompositor',
-                '--disable-web-security',
-                '--disable-features=TranslateUI',
-                '--disable-iframes-during-prerender',
-                '--disable-background-timer-throttling',
-                '--disable-renderer-backgrounding',
-                '--disable-backgrounding-occluded-windows',
-                '--disable-component-extensions-with-background-pages',
-                '--no-default-browser-check',
-                '--no-first-run',
-                '--disable-default-apps',
-                '--remote-debugging-port=0',
-                '--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-            ],
-            viewport={'width': 1920, 'height': 1080},
-            user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-            locale='en-US',
-            timezone_id='America/Los_Angeles',
-            extra_http_headers={
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'DNT': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-                'Upgrade-Insecure-Requests': '1'
-            }
-        )
-
-        # Keep browser handle for compatibility with existing code
-        self.browser = self.context.browser
-
-        # Reuse existing page if one already exists (Chrome restores tabs); otherwise create one
-        if self.context.pages:
-            self.page = self.context.pages[0]
-            await self.page.bring_to_front()
-        else:
-            self.page = await self.context.new_page()
-
-        await self._apply_stealth_scripts()
+        except Exception as exc:
+            raise RuntimeError(f"[{self.broker_name}] Failed to launch automation Chrome: {exc}")
         
         # Set up request/response logging (disabled for cleaner output)
         # self.page.on('request', self._log_request)
@@ -153,6 +61,25 @@ class BaseCrawler(ABC):
     async def _cleanup_browser(self):
         """Clean up browser resources"""
         if self.attached_to_remote:
+            if self.chrome_process:
+                if self.browser:
+                    try:
+                        await self.browser.close()
+                    except Exception:
+                        pass
+                self.chrome_process.terminate()
+                try:
+                    await asyncio.wait_for(self.chrome_process.wait(), timeout=5)
+                except asyncio.TimeoutError:
+                    self.chrome_process.kill()
+                    await self.chrome_process.wait()
+                self.chrome_process = None
+            else:
+                if self.created_page and self.page:
+                    try:
+                        await self.page.close()
+                    except Exception:
+                        pass
             if hasattr(self, 'playwright'):
                 await self.playwright.stop()
             return
@@ -165,6 +92,133 @@ class BaseCrawler(ABC):
             await self.browser.close()
         if hasattr(self, 'playwright'):
             await self.playwright.stop()
+
+    async def _connect_over_cdp(self, cdp_url: str):
+        """Attach to a Chrome instance via CDP."""
+        self.attached_to_remote = True
+        self.browser = await self.playwright.chromium.connect_over_cdp(cdp_url)
+
+        if self.browser.contexts:
+            self.context = self.browser.contexts[0]
+        else:
+            self.context = await self.browser.new_context()
+        if self.context.pages:
+            self.page = self.context.pages[0]
+            self.created_page = False
+        else:
+            self.page = await self.context.new_page()
+            self.created_page = True
+        if self.page:
+            await self.page.bring_to_front()
+        await self._apply_stealth_scripts()
+
+    async def _ensure_automation_chrome(self) -> str:
+        """Launch a dedicated Chrome instance for automation if not already running."""
+        if self.chrome_remote_debug_url:
+            return self.chrome_remote_debug_url
+
+        chrome_executable = '/Applications/Google Chrome Beta.app/Contents/MacOS/Google Chrome Beta'
+        if not os.path.exists(chrome_executable):
+            raise RuntimeError("Unable to locate Chrome executable for automation. Set CHROME_AUTOMATION_EXECUTABLE to the Chrome Beta path.")
+
+        user_data_dir = os.path.expanduser('~/Library/Application Support/Chrome-Automation')
+        os.makedirs(user_data_dir, exist_ok=True)
+
+        await self._terminate_existing_automation_chrome(user_data_dir)
+
+        port = self._find_free_port()
+        self.chrome_remote_debug_url = f"http://127.0.0.1:{port}/"
+
+
+        launch_args = [
+            chrome_executable,
+            "--window-size=1024,1024",
+            f"--remote-debugging-port={port}",
+            f"--user-data-dir={user_data_dir}",
+            '--no-first-run',
+            '--no-default-browser-check',
+            '--disable-background-networking',
+            '--disable-component-extensions-with-background-pages',
+            '--disable-background-timer-throttling',
+            '--disable-renderer-backgrounding',
+            '--disable-popup-blocking',
+            '--disable-sync',
+        ]
+
+        if self.headless:
+            launch_args.append('--headless=new')
+
+        self.chrome_process = await asyncio.create_subprocess_exec(
+            *launch_args,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL
+        )
+
+        await self._wait_for_cdp_ready(self.chrome_remote_debug_url)
+        return self.chrome_remote_debug_url
+
+    async def _terminate_existing_automation_chrome(self, user_data_dir: str):
+        import subprocess
+
+        try:
+            ps_output = subprocess.check_output(['ps', '-ax', '-o', 'pid=,ppid=,command='], text=True)
+        except Exception:
+            return
+
+        pids = []
+        for line in ps_output.splitlines():
+            try:
+                pid_str, ppid_str, command = line.strip().split(None, 2)
+                pid = int(pid_str)
+                if user_data_dir in command and 'remote-debugging-port' in command:
+                    pids.append(pid)
+            except ValueError:
+                continue
+
+        if not pids:
+            return
+
+        print(f"[{self.broker_name}] Terminating {len(pids)} existing automation Chrome instance(s)")
+        await self._terminate_processes(pids)
+
+    async def _terminate_processes(self, pids: List[int]):
+        import signal
+        for pid in pids:
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except ProcessLookupError:
+                continue
+        await asyncio.sleep(1)
+
+    async def _wait_for_cdp_ready(self, cdp_url: str, timeout: float = 15.0):
+        """Wait until the Chrome debugging endpoint responds."""
+        deadline = asyncio.get_running_loop().time() + timeout
+        probe_url = cdp_url.rstrip('/') + '/json/version'
+
+        while True:
+            if self.chrome_process and self.chrome_process.returncode is not None:
+                raise RuntimeError(f"Chrome process exited early with code {self.chrome_process.returncode}")
+
+            if await asyncio.to_thread(self._probe_cdp_endpoint, probe_url):
+                return
+
+            if asyncio.get_running_loop().time() > deadline:
+                raise RuntimeError(f"Timed out waiting for Chrome debugging endpoint at {cdp_url}")
+
+            await asyncio.sleep(0.2)
+
+    def _probe_cdp_endpoint(self, probe_url: str) -> bool:
+        try:
+            with contextlib.closing(urllib.request.urlopen(probe_url, timeout=1)) as response:
+                return response.status == 200
+        except Exception:
+            return False
+
+    def _find_free_port(self) -> int:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('127.0.0.1', 0))
+            return s.getsockname()[1]
+
 
     async def _apply_stealth_scripts(self):
         """Inject scripts to reduce automation detection."""
@@ -238,45 +292,10 @@ class BaseCrawler(ABC):
         except Exception as e:
             print(f"[{self.broker_name}] Failed to save session: {e}")
     
-    async def handle_2fa_prompt(self, prompt_text: str = "Enter 2FA code") -> str:
-        """Handle 2FA input from user"""
-        print(f"\n[{self.broker_name}] 2FA Required")
-        print(f"Prompt: {prompt_text}")
-        
-        # In a real implementation, this could be a web interface
-        # For now, we'll use console input
-        code = input("Enter 2FA code: ").strip()
-        return code
-    
-    async def wait_for_manual_action(self, message: str, timeout: int = 300):
-        """Wait for user to complete manual action (like 2FA)"""
-        print(f"\n[{self.broker_name}] Manual Action Required")
-        print(f"Message: {message}")
-        print("Press Enter when completed...")
-        
-        # In a production app, this would be handled via the web interface
-        input()
     
     def get_credentials(self) -> Optional[Dict[str, Any]]:
         """Get stored credentials for this broker"""
         return self.db_manager.get_credentials(self.broker_name)
-    
-    def store_credentials(self, username: str, password: str):
-        """Store credentials for this broker"""
-        self.db_manager.store_credentials(self.broker_name, username, password)
-    
-    async def navigate_with_retry(self, url: str, max_retries: int = 3) -> bool:
-        """Navigate to URL with retry logic"""
-        for attempt in range(max_retries):
-            try:
-                await self.page.goto(url, wait_until='networkidle', timeout=30000)
-                return True
-            except Exception as e:
-                print(f"[{self.broker_name}] Navigation attempt {attempt + 1} failed: {e}")
-                if attempt == max_retries - 1:
-                    return False
-                await asyncio.sleep(2 ** attempt)  # Exponential backoff
-        return False
     
     async def wait_for_element(self, selector: str, timeout: int = 10000) -> bool:
         """Wait for element to appear"""
