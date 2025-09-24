@@ -4,7 +4,7 @@ A local web application that aggregates portfolio data from multiple brokers by 
 
 ## Why not Empower?
 
-To minimize the risk of losing money.
+To minimize the risk of losing money. This tool just sprawn Chrome locally, crawl the portfolio from each brokers and show the result. No third party is involved. After all, why risk letting fraudsters know your information?
 
 ## Features
 
