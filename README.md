@@ -2,6 +2,10 @@
 
 A local web application that aggregates portfolio data from multiple brokers by web scraping.
 
+## Why not Empower?
+
+To minimize the risk of losing money.
+
 ## Features
 
 - Scrapes portfolio data from MerrillEdge, Chase, and ETrade
