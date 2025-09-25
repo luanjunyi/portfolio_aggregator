@@ -17,8 +17,8 @@ from models.portfolio import Holding
 class ChaseCrawler(BaseCrawler):
     """Chase Self-Direct Investment crawler"""
     
-    def __init__(self, headless: bool = True):
-        super().__init__("chase", headless)
+    def __init__(self):
+        super().__init__("chase")
         self.login_url = "https://secure.chase.com/web/auth/dashboard"
         self.portfolio_url = \
             "https://secure.chase.com/web/auth/dashboard#/dashboard/oi-portfolio/positions/render;ai=group-cwm-investment-;orderStatus=ALL"
@@ -29,14 +29,14 @@ class ChaseCrawler(BaseCrawler):
     
     async def scrape_portfolio(self) -> List[Holding]:
         """Scrape holdings from Chase"""
-        print(f"[{self.broker_name}] Starting Chase holdings scrape...")
+        self.log.info("Starting Chase holdings scrape...")
         
         # Login (navigation is handled inside login method)
         if not await self.login():
-            print(f"[{self.broker_name}] Login failed")
-            return []
+            self.log.fatal("Login failed")
+            raise RuntimeError("Login failed")
         
-        print(f"[{self.broker_name}] Navigating to portfolio page...")
+        self.log.info("Navigating to portfolio page...")
         
         # Navigate to the single portfolio page that shows all holdings
         await self.page.goto(self.portfolio_url, wait_until='networkidle')
@@ -48,13 +48,13 @@ class ChaseCrawler(BaseCrawler):
         # Parse holdings from HTML
         holdings = await self.parse_portfolio_html(html)
         
-        print(f"[{self.broker_name}] Found {len(holdings)} total holdings across all accounts")
+        self.log.info(f"Found {len(holdings)} total holdings across all accounts")
         
         return holdings
     
     async def login(self) -> bool:
         """Login to Chase"""
-        print(f"[{self.broker_name}] Starting Chase login...")
+        self.log.info("Starting Chase login...")
         
         # First check if we're already logged in with a valid session
         try:
@@ -63,7 +63,7 @@ class ChaseCrawler(BaseCrawler):
             
             # If we're already on the dashboard, we're logged in
             if "dashboard/overview" in current_url:
-                print(f"[{self.broker_name}] Already logged in with stored session!")
+                self.log.info("Already logged in with stored session!")
                 return True
         except Exception:
             pass  # Continue with normal login if session check fails
@@ -71,8 +71,8 @@ class ChaseCrawler(BaseCrawler):
         # Get stored credentials
         credentials = self.get_credentials()
         if not credentials:
-            print(f"[{self.broker_name}] No credentials found. Please add credentials first.")
-            return False
+            self.log.fatal("No credentials found. Please add credentials first.")
+            raise RuntimeError("No credentials found")
         
         username = credentials['username']
         password = credentials['password']
@@ -80,32 +80,32 @@ class ChaseCrawler(BaseCrawler):
         try:
             # Wait for page to fully load and check for redirects
             current_url = self.page.url
-            print(f"[{self.broker_name}] Current URL: {current_url}")
+            self.log.debug(f"Current URL: {current_url}")
             
             # Chase might redirect to a different login page
             if "logon" in current_url.lower():
                 await asyncio.sleep(3)
             
             # Wait for login iframe to load
-            print(f"[{self.broker_name}] Looking for login iframe...")
+            self.log.debug("Looking for login iframe...")
             
             # Wait for the iframe to appear
             iframe_selector = 'iframe#logonbox'
             if not await self.wait_for_element(iframe_selector, timeout=15000):
-                print(f"[{self.broker_name}] Login iframe not found")
-                return False
+                self.log.fatal("Login iframe not found")
+                raise RuntimeError("Login iframe not found")
             
             # Get the iframe element and switch to its context
             iframe_element = await self.page.query_selector(iframe_selector)
             if not iframe_element:
-                print(f"[{self.broker_name}] Could not get iframe element")
-                return False
+                self.log.fatal("Could not get iframe element")
+                raise RuntimeError("Could not get iframe element")
             
             # Get the iframe's content frame
             iframe_frame = await iframe_element.content_frame()
             if not iframe_frame:
-                print(f"[{self.broker_name}] Could not get iframe content frame")
-                return False
+                self.log.fatal("Could not get iframe content frame")
+                raise RuntimeError("Could not get iframe content frame")
             
             # Wait for login form elements inside the iframe
             form_loaded = False
@@ -119,8 +119,8 @@ class ChaseCrawler(BaseCrawler):
                 await asyncio.sleep(2)
             
             if not form_loaded:
-                print(f"[{self.broker_name}] Login form never loaded in iframe")
-                return False
+                self.log.fatal("Login form never loaded in iframe")
+                raise RuntimeError("Login form never loaded in iframe")
             
             # Wait for login form to load - Chase uses specific selectors
             username_selectors = [
@@ -154,8 +154,8 @@ class ChaseCrawler(BaseCrawler):
                     continue
             
             if not username_found:
-                print(f"[{self.broker_name}] Username field not found in iframe")
-                return False
+                self.log.fatal("Username field not found in iframe")
+                raise RuntimeError("Username field not found in iframe")
             
             # Wait for password field in iframe
             password_found = False
@@ -171,8 +171,8 @@ class ChaseCrawler(BaseCrawler):
                     continue
             
             if not password_found:
-                print(f"[{self.broker_name}] Password field not found in iframe")
-                return False
+                self.log.fatal("Password field not found in iframe")
+                raise RuntimeError("Password field not found in iframe")
             
             # Click login button in iframe
             login_button_selectors = [
@@ -198,37 +198,37 @@ class ChaseCrawler(BaseCrawler):
                     continue
             
             if not login_button_found:
-                print(f"[{self.broker_name}] Could not find login button in iframe")
-                return False
+                self.log.fatal("Could not find login button in iframe")
+                raise RuntimeError("Could not find login button in iframe")
             
             # Check if we're on the dashboard or need 2FA
             current_url = self.page.url
-            print(f"[{self.broker_name}] Current URL after login: {current_url}")
+            self.log.debug(f"Current URL after login: {current_url}")
             
             # Check for 2FA or security questions
             await self.handle_2fa_if_needed()
             # Wait for dashboard URL
             try:
-                print(f"[{self.broker_name}] Waiting for portfolio page to load...")
+                self.log.info("Waiting for portfolio page to load...")
                 await self.page.wait_for_url("**/dashboard/overview", timeout=5 * 60000)
             except TimeoutError:
-                print(f"[{self.broker_name}] Timed out waiting for dashboard URL")
+                self.log.warning("Timed out waiting for dashboard URL")
 
             
             # Check if we're successfully logged in
             # If URL contains dashboard, we're likely logged in
             if "/dashboard/overview" in self.page.url:
-                print(f"[{self.broker_name}] Login successful - reached dashboard URL!")
+                self.log.info("Login successful - reached dashboard URL!")
                 # Save session for future use
                 await self.save_session()
                 return True
             else:
-                print(f"[{self.broker_name}] Login failed - reached URL: {self.page.url}, expected */dashboard/overview")
-                return False
+                self.log.fatal(f"Login failed - reached URL: {self.page.url}, expected */dashboard/overview")
+                raise RuntimeError(f"Login failed - unexpected URL: {self.page.url}")
                 
         except Exception as e:
-            print(f"[{self.broker_name}] Login failed: {e}")
-            return False
+            self.log.fatal(f"Login failed: {e}")
+            raise
     
     async def handle_2fa_if_needed(self) -> bool:
         """Handle 2FA if required"""
@@ -254,13 +254,13 @@ class ChaseCrawler(BaseCrawler):
         
         if not is_2fa_required:
             # No 2FA required, we're good to go
-            print(f"[{self.broker_name}] No 2FA required, we're good to go!")
+            self.log.info("No 2FA required, we're good to go!")
             return True
         
         # 2FA is required
-        print(f"\n🔐 [{self.broker_name}] 2FA Challenge detected!")
-        print(f"📱 Please complete the 2FA challenge in your browser window.")
-        print(f"⏳ Waiting for redirect to dashboard/overview...")
+        self.log.warning("🔐 2FA Challenge detected!")
+        self.log.info("📱 Please complete the 2FA challenge in your browser window.")
+        self.log.info("⏳ Waiting for redirect to dashboard/overview...")
         
         # Wait for user to complete 2FA - page should redirect to dashboard/overview
         max_wait_time = 300  # 5 minutes
@@ -274,22 +274,22 @@ class ChaseCrawler(BaseCrawler):
             # Check if we've been redirected to dashboard/overview
             current_url = self.page.url
             if current_url.endswith('dashboard/overview'):
-                print(f"✅ [{self.broker_name}] 2FA completed successfully!")
+                self.log.info("✅ 2FA completed successfully!")
                 return True
             
             # Show progress every 30 seconds
             if elapsed_time % 30 == 0:
                 remaining = (max_wait_time - elapsed_time) // 60
-                print(f"⏳ Still waiting for 2FA completion... ({remaining} minutes remaining)")
-                print(f"   Current URL: {current_url}")
+                self.log.info(f"⏳ Still waiting for 2FA completion... ({remaining} minutes remaining)")
+                self.log.debug(f"   Current URL: {current_url}")
         
-        print(f"⏰ [{self.broker_name}] 2FA timeout after {max_wait_time//60} minutes")
+        self.log.error(f"⏰ 2FA timeout after {max_wait_time//60} minutes")
         return False
     
     
     async def parse_portfolio_html(self, html: str) -> List[Holding]:
         """Parse Chase portfolio HTML to extract holdings"""
-        print(f"[{self.broker_name}] Parsing HTML for all holdings...")
+        self.log.info("Parsing HTML for all holdings...")
         
         soup = self.parse_html_with_soup(html)
         holdings = []
@@ -298,24 +298,24 @@ class ChaseCrawler(BaseCrawler):
         portfolio_table = soup.find('table', {'id': 'ssv-table', 'data-testid': 'ssv-table'})
         
         if not portfolio_table:
-            print(f"[{self.broker_name}] Chase portfolio table not found")
+            self.log.fatal("Chase portfolio table not found")
             # Save HTML for debugging
             debug_file = f"chase_debug_all_holdings.html"
             with open(debug_file, 'w', encoding='utf-8') as f:
                 f.write(html)
-            print(f"[{self.broker_name}] Saved HTML to {debug_file} for analysis")
-            return holdings
+            self.log.info(f"Saved HTML to {debug_file} for analysis")
+            raise RuntimeError("Portfolio table not found")
         
-        print(f"[{self.broker_name}] Found Chase portfolio table")
+        self.log.info("Found Chase portfolio table")
         
         # Find all position rows (exclude cash and totals rows)
         tbody = portfolio_table.find('tbody')
         if not tbody:
-            print(f"[{self.broker_name}] No tbody found in portfolio table")
-            return holdings
+            self.log.fatal("No tbody found in portfolio table")
+            raise RuntimeError("No tbody found in portfolio table")
         
         position_rows = tbody.find_all('tr', {'data-testid': lambda x: x and x.startswith('position-')})
-        print(f"[{self.broker_name}] Found {len(position_rows)} position rows")
+        self.log.info(f"Found {len(position_rows)} position rows")
         
         for row in position_rows:
             try:
@@ -323,16 +323,16 @@ class ChaseCrawler(BaseCrawler):
                 if holding:
                     holdings.append(holding)
             except Exception as e:
-                print(f"[{self.broker_name}] Error parsing row: {e}")
+                self.log.error(f"Error parsing row: {e}")
         
-        print(f"[{self.broker_name}] Successfully parsed {len(holdings)} holdings")
+        self.log.info(f"Successfully parsed {len(holdings)} holdings")
         return holdings
     
     def _parse_position_row(self, row) -> Holding:
         """Parse a single position row from Chase portfolio table"""
         cells = row.find_all('td')
         if len(cells) < 10:
-            print(f"[{self.broker_name}] Row has insufficient cells: {len(cells)}")
+            self.log.warning(f"Row has insufficient cells: {len(cells)}")
             return None
         
         try:
@@ -399,7 +399,6 @@ class ChaseCrawler(BaseCrawler):
             
             # Create holding object
             holding = Holding(
-                broker="chase",
                 symbol=symbol,
                 description=description,
                 quantity=quantity,
@@ -410,14 +409,15 @@ class ChaseCrawler(BaseCrawler):
                 day_change_percent=day_change_percent,
                 day_change_dollars=day_change_dollars,
                 unrealized_gain_loss=unrealized_gain_loss,
-                unrealized_gain_loss_percent=unrealized_gain_loss_percent
+                unrealized_gain_loss_percent=unrealized_gain_loss_percent,
+                brokers={self.broker_name: current_value}
             )
             
-            print(f"[{self.broker_name}] Parsed holding: {symbol} - {quantity} shares @ ${price} = ${market_value}")
+            self.log.debug(f"Parsed holding: {symbol} - {quantity} shares @ ${price} = ${market_value}")
             return holding
             
         except Exception as e:
-            print(f"[{self.broker_name}] Error parsing position row: {e}")
+            self.log.error(f"Error parsing position row: {e}")
             return None
     
     def _clean_decimal_text(self, value_str: str) -> Decimal:

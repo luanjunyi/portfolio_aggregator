@@ -13,8 +13,8 @@ from models.portfolio import Holding
 class SandboxCrawler(BaseCrawler):
     """Test crawler for development and testing purposes"""
     
-    def __init__(self, headless: bool = True):
-        super().__init__("test_broker", headless)
+    def __init__(self):
+        super().__init__("test_broker")
     
     def get_login_url(self) -> str:
         """Return a test URL"""
@@ -22,26 +22,26 @@ class SandboxCrawler(BaseCrawler):
     
     async def login(self) -> bool:
         """Simulate login process"""
-        print(f"[{self.broker_name}] Simulating login...")
+        self.log.info("Simulating login...")
         
         # Check if we have credentials
         credentials = self.get_credentials()
         if not credentials:
-            print(f"[{self.broker_name}] No credentials found. Please store credentials first.")
-            return False
+            self.log.fatal("No credentials found. Please store credentials first.")
+            raise RuntimeError("No credentials found")
         
-        print(f"[{self.broker_name}] Using credentials for user: {credentials['username']}")
+        self.log.info(f"Using credentials for user: {credentials['username']}")
         
         # Simulate some delay
         await asyncio.sleep(1)
         
         # Simulate successful login
-        print(f"[{self.broker_name}] Login successful!")
+        self.log.info("Login successful!")
         return True
     
     async def scrape_portfolio(self) -> List[Holding]:
         """Generate test portfolio data"""
-        print(f"[{self.broker_name}] Scraping portfolio data...")
+        self.log.info("Scraping portfolio data...")
         
         # Simulate scraping delay
         await asyncio.sleep(1)
@@ -59,7 +59,7 @@ class SandboxCrawler(BaseCrawler):
                 unrealized_gain_loss=Decimal("2500.00"),
                 unrealized_gain_loss_percent=Decimal("16.67"),
                 portfolio_percentage=Decimal("35.0"),
-                broker=self.broker_name
+                brokers={self.broker_name: Decimal("17500.00")}
             ),
             Holding(
                 symbol="GOOGL",
@@ -72,7 +72,7 @@ class SandboxCrawler(BaseCrawler):
                 unrealized_gain_loss=Decimal("1250.00"),
                 unrealized_gain_loss_percent=Decimal("20.83"),
                 portfolio_percentage=Decimal("14.5"),
-                broker=self.broker_name
+                brokers={self.broker_name: Decimal("7250.00")}
             ),
             Holding(
                 symbol="TSLA",
@@ -85,9 +85,9 @@ class SandboxCrawler(BaseCrawler):
                 unrealized_gain_loss=Decimal("1250.00"),
                 unrealized_gain_loss_percent=Decimal("25.0"),
                 portfolio_percentage=Decimal("12.5"),
-                broker=self.broker_name
+                brokers={self.broker_name: Decimal("6250.00")}
             )
         ]
         
-        print(f"[{self.broker_name}] Found {len(test_holdings)} holdings")
+        self.log.info(f"Found {len(test_holdings)} holdings")
         return test_holdings

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import Dict, List, Optional
 from decimal import Decimal
 from datetime import datetime
 
@@ -18,7 +18,7 @@ class Holding(BaseModel):
     unrealized_gain_loss: Decimal
     unrealized_gain_loss_percent: Decimal
     portfolio_percentage: Optional[Decimal] = None
-    broker: str  # Which broker this holding is from
+    brokers: Dict[str, Decimal] = Field(default_factory=dict)
 
 
 class Portfolio(BaseModel):

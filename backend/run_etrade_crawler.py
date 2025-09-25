@@ -29,8 +29,8 @@ async def run_etrade_crawler():
 
     print(f"✅ Found credentials for user: {creds['username']}")
 
-    # Use headless=False for interactive login (and to complete 2FA if required)
-    async with EtradeCrawler(headless=False) as crawler:
+    # Use visible browser for interactive login (and to complete 2FA if required)
+    async with EtradeCrawler() as crawler:
         print("\n🚀 Starting E*TRADE crawl...")
         result = await crawler.crawl()
 
@@ -56,7 +56,7 @@ async def run_etrade_crawler():
                 print(f"     Current Value: ${holding.current_value}")
                 print(f"     Day Change: ${holding.day_change_dollars} ({holding.day_change_percent:.4%})")
                 print(f"     Unrealized G/L: ${holding.unrealized_gain_loss} ({holding.unrealized_gain_loss_percent:.4%})")
-                print(f"     Broker: {holding.broker}")
+                print(f"     Brokers: {holding.brokers}")
                 if holding.portfolio_percentage:
                     print(f"     Portfolio %: {holding.portfolio_percentage:.4%}")
                 print()

@@ -1,0 +1,199 @@
+from __future__ import annotations
+
+import asyncio
+import logging
+from decimal import Decimal
+from datetime import datetime
+from typing import Dict, Iterable, List, Sequence, Tuple, Type
+
+# Set up logging
+log = logging.getLogger(__name__)
+
+if __package__:
+    from .crawlers.base_crawler import BaseCrawler
+    from .crawlers.chase_crawler import ChaseCrawler
+    from .crawlers.etrade_crawler import EtradeCrawler
+    from .crawlers.merrill_crawler import MerrillCrawler
+    from .models.portfolio import CrawlerResult, Holding, Portfolio
+else:  # pragma: no cover - allows running as a script for quick tests
+    from crawlers.base_crawler import BaseCrawler
+    from crawlers.chase_crawler import ChaseCrawler
+    from crawlers.etrade_crawler import EtradeCrawler
+    from crawlers.merrill_crawler import MerrillCrawler
+    from models.portfolio import CrawlerResult, Holding, Portfolio
+
+CrawlerType = Type[BaseCrawler]
+BROKER_CRAWLERS: Sequence[CrawlerType] = (
+    MerrillCrawler,
+    ChaseCrawler,
+    EtradeCrawler,
+)
+
+
+def _decimal_sum(values: Iterable[Decimal]) -> Decimal:
+    return sum(values, Decimal("0"))
+
+
+def _merge_broker_maps(holdings: Iterable[Holding]) -> Dict[str, Decimal]:
+    merged: Dict[str, Decimal] = {}
+    for holding in holdings:
+        broker_map = holding.brokers or {}
+        for broker_name, value in broker_map.items():
+            merged[broker_name] = merged.get(broker_name, Decimal("0")) + value
+    return merged
+
+
+def _combine_symbol_group(symbol: str, holdings: Sequence[Holding]) -> Holding:
+    if not holdings:
+        raise ValueError(f"No holdings provided for symbol {symbol}")
+
+    base = holdings[0]
+
+    total_quantity = _decimal_sum(h.quantity for h in holdings)
+    total_cost_basis = _decimal_sum(h.cost_basis for h in holdings)
+    total_current_value = _decimal_sum(h.current_value for h in holdings)
+    total_day_change_dollars = _decimal_sum(h.day_change_dollars for h in holdings)
+    total_unrealized_gain_loss = _decimal_sum(h.unrealized_gain_loss for h in holdings)
+
+    weighted_price = Decimal("0")
+    weighted_unit_cost = Decimal("0")
+    if total_quantity != 0:
+        weighted_price = total_current_value / total_quantity
+        weighted_unit_cost = total_cost_basis / total_quantity
+
+    day_change_percent = Decimal("0")
+    prior_value = total_current_value - total_day_change_dollars
+    if prior_value != 0:
+        day_change_percent = total_day_change_dollars / prior_value
+
+    unrealized_gain_loss_percent = Decimal("0")
+    if total_cost_basis != 0:
+        unrealized_gain_loss_percent = total_unrealized_gain_loss / total_cost_basis
+
+    combined_brokers = _merge_broker_maps(holdings)
+
+    return Holding(
+        symbol=symbol,
+        description=base.description,
+        quantity=total_quantity,
+        price=weighted_price,
+        unit_cost=weighted_unit_cost,
+        cost_basis=total_cost_basis,
+        current_value=total_current_value,
+        day_change_percent=day_change_percent,
+        day_change_dollars=total_day_change_dollars,
+        unrealized_gain_loss=total_unrealized_gain_loss,
+        unrealized_gain_loss_percent=unrealized_gain_loss_percent,
+        portfolio_percentage=None,
+        brokers=combined_brokers,
+    )
+
+
+def _combine_successful_holdings(results: Sequence[CrawlerResult]) -> List[Holding]:
+    grouped: Dict[str, List[Holding]] = {}
+    for result in results:
+        if not result.success:
+            continue
+        for holding in result.holdings:
+            grouped.setdefault(holding.symbol, []).append(holding)
+
+    combined: List[Holding] = []
+    for symbol in sorted(grouped.keys()):
+        combined.append(_combine_symbol_group(symbol, grouped[symbol]))
+    return combined
+
+
+def _assign_portfolio_percentages(holdings: List[Holding]) -> List[Holding]:
+    total_value = _decimal_sum(h.current_value for h in holdings)
+    if total_value == 0:
+        return holdings
+
+    updated: List[Holding] = []
+    for holding in holdings:
+        percentage = holding.current_value / total_value
+        updated.append(holding.copy(update={"portfolio_percentage": percentage}))
+    return updated
+
+
+async def _run_crawler(crawler_cls: CrawlerType) -> CrawlerResult:
+    crawler = crawler_cls()
+    try:
+        async with crawler:
+            return await crawler.crawl()
+    except Exception as exc:  # pragma: no cover - defensive safety net
+        return CrawlerResult(
+            broker=crawler.broker_name,
+            success=False,
+            holdings=[],
+            error_message=str(exc),
+            session_valid=False,
+        )
+
+
+async def fetch_all_positions() -> Portfolio:
+    results: List[CrawlerResult] = []
+    for crawler_cls in BROKER_CRAWLERS:
+        result = await _run_crawler(crawler_cls)
+        results.append(result)
+
+    combined_holdings = _combine_successful_holdings(results)
+    holdings_with_percentages = _assign_portfolio_percentages(combined_holdings)
+
+    total_value = _decimal_sum(h.current_value for h in holdings_with_percentages)
+    total_cost_basis = _decimal_sum(h.cost_basis for h in holdings_with_percentages)
+    total_unrealized = _decimal_sum(h.unrealized_gain_loss for h in holdings_with_percentages)
+
+    total_unrealized_percent = Decimal("0")
+    if total_cost_basis != 0:
+        total_unrealized_percent = total_unrealized / total_cost_basis
+
+    brokers_updated = [result.broker for result in results if result.success]
+
+    portfolio = Portfolio(
+        holdings=holdings_with_percentages,
+        total_value=total_value,
+        total_cost_basis=total_cost_basis,
+        total_unrealized_gain_loss=total_unrealized,
+        total_unrealized_gain_loss_percent=total_unrealized_percent,
+        last_updated=datetime.utcnow(),
+        brokers_updated=brokers_updated,
+    )
+
+    for result in results:
+        status = "SUCCESS" if result.success else "FAILED"
+        log.info(f"[{result.broker}] {status} - holdings: {len(result.holdings)}")
+        if result.error_message:
+            log.error(f"    Error: {result.error_message}")    
+
+    return portfolio
+
+
+async def main() -> None:
+    portfolio = await fetch_all_positions()
+
+    log.info("\nCombined Holdings:")
+    for holding in portfolio.holdings:
+        broker_details = ", ".join(
+            f"{broker}: ${value}" for broker, value in sorted(holding.brokers.items())
+        ) or "(none)"
+        log.info(
+            f"- {holding.symbol}: qty={holding.quantity}, value=${holding.current_value}"
+            f" ({broker_details})"
+        )
+
+    log.info("\nPortfolio Totals:")
+    log.info(f"  Total Value: ${portfolio.total_value}")
+    log.info(f"  Cost Basis: ${portfolio.total_cost_basis}")
+    log.info(f"  Unrealized G/L: ${portfolio.total_unrealized_gain_loss}")
+    log.info(
+        "  Unrealized %: "
+        + (
+            f"{(portfolio.total_unrealized_gain_loss_percent * Decimal('100')):.2f}%"
+            if portfolio.total_unrealized_gain_loss_percent is not None
+            else "N/A"
+        )
+    )
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

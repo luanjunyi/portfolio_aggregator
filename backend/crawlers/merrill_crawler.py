@@ -18,8 +18,8 @@ from models.portfolio import Holding
 class MerrillCrawler(BaseCrawler):
     """Merrill Edge crawler"""
     
-    def __init__(self, headless: bool = True):
-        super().__init__("merrill_edge", headless)
+    def __init__(self):
+        super().__init__("merrill_edge")
         self.login_url = "https://olui2.fs.ml.com/login/signin.aspx"
         self.portfolio_url = "https://olui2.fs.ml.com/TFPHoldings/HoldingsByAccount.aspx"
     
@@ -29,11 +29,20 @@ class MerrillCrawler(BaseCrawler):
     
     async def scrape_portfolio(self) -> List[Holding]:
         """Scrape holdings from Merrill Edge"""
-        print(f"[{self.broker_name}] Starting Merrill holdings scrape...")      
-        print(f"[{self.broker_name}] Navigating to portfolio page...")
+        self.log.info("Starting Merrill holdings scrape...")      
+        self.log.info("Navigating to portfolio page...")
         
         # Navigate to the portfolio page that shows all holdings
         await self.page.goto(self.portfolio_url, wait_until='networkidle')
+        
+        # Wait for the portfolio table to load (it has a dynamic ID starting with CustomGrid_)
+        self.log.info("Waiting for portfolio table to load...")
+        try:
+            await self.page.wait_for_selector('table[id^="CustomGrid_"][class*="customTable"]', timeout=30000)
+            self.log.info("Portfolio table loaded successfully")
+        except Exception as e:
+            self.log.warning(f"Portfolio table selector not found: {e}")
+            # Continue anyway in case the table is there but with different attributes
         
         # Get page HTML
         html = await self.page.content()
@@ -41,24 +50,23 @@ class MerrillCrawler(BaseCrawler):
         # Parse holdings from HTML
         holdings = await self.parse_portfolio_html(html)
         
-        print(f"[{self.broker_name}] Found {len(holdings)} total holdings")
+        self.log.info(f"Found {len(holdings)} total holdings")
         
         return holdings
     
     async def login(self) -> bool:
         """Login to Merrill Edge"""
-        print(f"[{self.broker_name}] Starting Merrill login...")
+        self.log.info("Starting Merrill login...")
         
         # First check if we're already logged in with a valid session
         try:
             await self.page.goto(self.login_url, wait_until='domcontentloaded')
             # Give the browser a chance to follow any automatic redirect
             await self.page.wait_for_load_state('networkidle', timeout=15000)
-            await asyncio.sleep(2)
 
             current_url = self.page.url
             if "tfpholdings" in current_url.lower():
-                print(f"[{self.broker_name}] Already logged in with stored session!")
+                self.log.info("Already logged in with stored session!")
                 return True
         except Exception:
             pass  # Continue with normal login if session check fails
@@ -66,8 +74,8 @@ class MerrillCrawler(BaseCrawler):
         # Get stored credentials
         credentials = self.get_credentials()
         if not credentials:
-            print(f"[{self.broker_name}] No credentials found. Please add credentials first.")
-            return False
+            self.log.fatal("No credentials found. Please add credentials first.")
+            raise RuntimeError("No credentials found")
         
         username = credentials['username']
         password = credentials['password']
@@ -75,7 +83,7 @@ class MerrillCrawler(BaseCrawler):
         try:
             # Wait for page to fully load
             current_url = self.page.url
-            print(f"[{self.broker_name}] Current URL: {current_url}")
+            self.log.debug(f"Current URL: {current_url}")
             
             # Look for username field
             username_selectors = [
@@ -93,15 +101,15 @@ class MerrillCrawler(BaseCrawler):
                     if element:
                         await self.page.fill(selector, username)
                         username_found = True
-                        print(f"[{self.broker_name}] Found username field: {selector}")
+                        self.log.debug(f"Found username field: {selector}")
                         break
                 except Exception as err:
-                    print(f"[{self.broker_name}] Error filling username field: {err}")
+                    self.log.error(f"Error filling username field: {err}")
                     continue
             
             if not username_found:
-                print(f"[{self.broker_name}] Username field not found")
-                return False
+                self.log.fatal("Username field not found")
+                raise RuntimeError("Username field not found")
             
             # Look for password field
             password_selectors = [
@@ -118,15 +126,15 @@ class MerrillCrawler(BaseCrawler):
                     if element:
                         await self.page.fill(selector, password)
                         password_found = True
-                        print(f"[{self.broker_name}] Found password field: {selector}")
+                        self.log.debug(f"Found password field: {selector}")
                         break
                 except Exception as err:
-                    print(f"[{self.broker_name}] Error filling password field: {err}")
+                    self.log.error(f"Error filling password field: {err}")
                     continue
             
             if not password_found:
-                print(f"[{self.broker_name}] Password field not found")
-                return False
+                self.log.fatal("Password field not found")
+                raise RuntimeError("Password field not found")
             
             # Click login button
             login_button_selectors = [
@@ -147,29 +155,29 @@ class MerrillCrawler(BaseCrawler):
                     if element:
                         await self.page.click(selector, delay=random.randint(100, 200))
                         login_button_found = True
-                        print(f"[{self.broker_name}] Clicked login button: {selector}")
+                        self.log.debug(f"Clicked login button: {selector}")
                         break
                 except Exception as err:
-                    print(f"[{self.broker_name}] Error clicking login button: {err}")
+                    self.log.error(f"Error clicking login button: {err}")
                     continue
             
             if not login_button_found:
-                print(f"[{self.broker_name}] Could not find login button")
-                return False
+                self.log.fatal("Could not find login button")
+                raise RuntimeError("Could not find login button")
 
             # Wait for positions page or any portfolios page
             try:
-                print(f"[{self.broker_name}] Waiting for positions page to load...")
-                await self.page.wait_for_url("**/tfpholdings/holdingsbyaccount*", timeout=5 * 60000)
+                self.log.info("Waiting for positions page to load...")
+                await self.page.wait_for_url("**/TFPHoldings/HoldingsByAccount.aspx", timeout=5 * 60000)
             except Exception as e:
-                print(f"[{self.broker_name}] Error waiting for positions URL: {e}")            
+                self.log.warning(f"Error waiting for positions URL: {e}")            
             
             
             return True
                 
         except Exception as e:
-            print(f"[{self.broker_name}] Login failed: {e}")
-            return False
+            self.log.fatal(f"Login failed: {e}")
+            raise
     
     async def handle_2fa_if_needed(self) -> bool:
         """Handle 2FA if required"""
@@ -178,7 +186,7 @@ class MerrillCrawler(BaseCrawler):
     
     async def parse_portfolio_html(self, html: str) -> List[Holding]:
         """Parse Merrill Edge portfolio HTML to extract holdings"""
-        print(f"[{self.broker_name}] Parsing HTML for all holdings...")
+        self.log.info("Parsing HTML for all holdings...")
         
         soup = self.parse_html_with_soup(html)
         holdings = []
@@ -186,14 +194,14 @@ class MerrillCrawler(BaseCrawler):
         tables = soup.find_all('table', id=re.compile(r'^CustomGrid_'))
 
         if not tables:
-            print(f"[{self.broker_name}] Merrill holdings tables not found")
+            self.log.fatal("Merrill holdings tables not found")
             debug_file = "merrill_debug_all_holdings.html"
             with open(debug_file, 'w', encoding='utf-8') as f:
                 f.write(html)
-            print(f"[{self.broker_name}] Saved HTML to {debug_file} for analysis")
-            return []
+            self.log.info(f"Saved HTML to {debug_file} for analysis")
+            raise RuntimeError("Holdings tables not found")
 
-        print(f"[{self.broker_name}] Found {len(tables)} holdings table(s)")
+        self.log.info(f"Found {len(tables)} holdings table(s)")
 
         for table in tables:
             tbody = table.find('tbody')
@@ -206,21 +214,21 @@ class MerrillCrawler(BaseCrawler):
                 if first_cell:
                     symbol_preview = first_cell.get_text(strip=True).lower()
                     if 'balances' in symbol_preview:
-                        print(f"[{self.broker_name}] Reached balances section, stopping row parsing")
+                        self.log.info("Reached balances section, stopping row parsing")
                         break
                 try:
                     holding = self._parse_position_row(row)
                     if holding:
                         holdings.append(holding)
                 except Exception as e:
-                    print(f"[{self.broker_name}] Error parsing row: {e}")
-            print(f"found {len(holdings)} holdings from table")
+                    self.log.error(f"Error parsing row: {e}")
+            self.log.debug(f"found {len(holdings)} holdings from table")
 
         # Combine holdings by symbol
         combined_holdings = self._combine_holdings_by_symbol(holdings)
         
-        print(f"[{self.broker_name}] Successfully parsed {len(holdings)} individual holdings")
-        print(f"[{self.broker_name}] Combined into {len(combined_holdings)} unique symbols")
+        self.log.info(f"Successfully parsed {len(holdings)} individual holdings")
+        self.log.info(f"Combined into {len(combined_holdings)} unique symbols")
         return combined_holdings
     
     def _parse_position_row(self, row) -> Holding:
@@ -262,7 +270,6 @@ class MerrillCrawler(BaseCrawler):
                 portfolio_percentage = self._clean_percentage_text(portfolio_text)
 
             holding = Holding(
-                broker="merrill",
                 symbol=symbol,
                 description=description,
                 quantity=quantity,
@@ -274,14 +281,15 @@ class MerrillCrawler(BaseCrawler):
                 day_change_dollars=day_change_dollars,
                 unrealized_gain_loss=unrealized_gain_loss,
                 unrealized_gain_loss_percent=unrealized_gain_loss_percent,
-                portfolio_percentage=portfolio_percentage
+                portfolio_percentage=portfolio_percentage,
+                brokers={self.broker_name: current_value}
             )
 
-            print(f"[{self.broker_name}] Parsed holding: {symbol} - {quantity} @ ${price} (value ${current_value})")
+            self.log.debug(f"Parsed holding: {symbol} - {quantity} @ ${price} (value ${current_value})")
             return holding
 
         except Exception as e:
-            print(f"[{self.broker_name}] Error parsing position row: {e}")
+            self.log.error(f"Error parsing position row: {e}")
             return None
 
     def _extract_dollar_change(self, cell) -> Decimal:
@@ -430,9 +438,8 @@ class MerrillCrawler(BaseCrawler):
         portfolio_percentages = [h.portfolio_percentage for h in holdings if h.portfolio_percentage is not None]
         if portfolio_percentages:
             portfolio_percentage = sum(portfolio_percentages)
-        
+
         combined_holding = Holding(
-            broker=base_holding.broker,
             symbol=symbol,
             description=base_holding.description,
             quantity=total_quantity,
@@ -444,8 +451,9 @@ class MerrillCrawler(BaseCrawler):
             day_change_dollars=total_day_change_dollars,
             unrealized_gain_loss=total_unrealized_gain_loss,
             unrealized_gain_loss_percent=unrealized_gain_loss_percent,
-            portfolio_percentage=portfolio_percentage
+            portfolio_percentage=portfolio_percentage,
+            brokers={self.broker_name: total_current_value}
         )
         
-        print(f"[{self.broker_name}] Combined {len(holdings)} holdings for {symbol}: {total_quantity} shares @ ${weighted_avg_price:.4f} = ${total_current_value}")
+        self.log.debug(f"Combined {len(holdings)} holdings for {symbol}: {total_quantity} shares @ ${weighted_avg_price:.4f} = ${total_current_value}")
         return combined_holding

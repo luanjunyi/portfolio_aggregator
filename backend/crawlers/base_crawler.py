@@ -5,6 +5,7 @@ import json
 import socket
 import contextlib
 import urllib.request
+import logging
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
@@ -13,16 +14,22 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Configure logging with line numbers
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
 from models.portfolio import Holding, CrawlerResult
 from storage.database import DatabaseManager
-
 
 class BaseCrawler(ABC):
     """Base class for all broker crawlers"""
     
-    def __init__(self, broker_name: str, headless: bool = True):
+    def __init__(self, broker_name: str):
         self.broker_name = broker_name
-        self.headless = headless
+        self.headless = False
         self.db_manager = DatabaseManager()
         self.browser: Optional[Browser] = None
         self.context: Optional[BrowserContext] = None
@@ -31,6 +38,7 @@ class BaseCrawler(ABC):
         self.chrome_process: Optional[asyncio.subprocess.Process] = None
         self.chrome_remote_debug_url: Optional[str] = None
         self.created_page = False
+        self.log = logging.getLogger(f"{self.__class__.__name__}[{broker_name}]")
         
     async def __aenter__(self):
         """Async context manager entry"""
@@ -48,11 +56,12 @@ class BaseCrawler(ABC):
         # Attempt to launch a dedicated automation Chrome instance
         try:
             cdp_url = await self._ensure_automation_chrome()
-            print(f"Launching automation Chrome and attaching over CDP at {cdp_url}")
+            self.log.info(f"Launching automation Chrome and attaching over CDP at {cdp_url}")
             await self._connect_over_cdp(cdp_url)
             return
         except Exception as exc:
-            raise RuntimeError(f"[{self.broker_name}] Failed to launch automation Chrome: {exc}")
+            self.log.fatal(f"Failed to launch automation Chrome: {exc}")
+            raise RuntimeError(f"Failed to launch automation Chrome: {exc}")
         
         # Set up request/response logging (disabled for cleaner output)
         # self.page.on('request', self._log_request)
@@ -119,6 +128,7 @@ class BaseCrawler(ABC):
 
         chrome_executable = '/Applications/Google Chrome Beta.app/Contents/MacOS/Google Chrome Beta'
         if not os.path.exists(chrome_executable):
+            self.log.fatal(f"Chrome executable not found at {chrome_executable}")
             raise RuntimeError("Unable to locate Chrome executable for automation. Set CHROME_AUTOMATION_EXECUTABLE to the Chrome Beta path.")
 
         user_data_dir = os.path.expanduser('~/Library/Application Support/Chrome-Automation')
@@ -178,7 +188,7 @@ class BaseCrawler(ABC):
         if not pids:
             return
 
-        print(f"[{self.broker_name}] Terminating {len(pids)} existing automation Chrome instance(s)")
+        self.log.info(f"Terminating {len(pids)} existing automation Chrome instance(s)")
         await self._terminate_processes(pids)
 
     async def _terminate_processes(self, pids: List[int]):
@@ -197,12 +207,14 @@ class BaseCrawler(ABC):
 
         while True:
             if self.chrome_process and self.chrome_process.returncode is not None:
+                self.log.fatal(f"Chrome process exited early with code {self.chrome_process.returncode}")
                 raise RuntimeError(f"Chrome process exited early with code {self.chrome_process.returncode}")
 
             if await asyncio.to_thread(self._probe_cdp_endpoint, probe_url):
                 return
 
             if asyncio.get_running_loop().time() > deadline:
+                self.log.fatal(f"Timed out waiting for Chrome debugging endpoint at {cdp_url}")
                 raise RuntimeError(f"Timed out waiting for Chrome debugging endpoint at {cdp_url}")
 
             await asyncio.sleep(0.2)
@@ -269,12 +281,12 @@ class BaseCrawler(ABC):
     
     def _log_request(self, request):
         """Log outgoing requests for debugging"""
-        print(f"[{self.broker_name}] Request: {request.method} {request.url}")
+        self.log.debug(f"Request: {request.method} {request.url}")
     
     def _log_response(self, response):
         """Log responses for debugging"""
         if response.status >= 400:
-            print(f"[{self.broker_name}] Error Response: {response.status} {response.url}")
+            self.log.error(f"Error Response: {response.status} {response.url}")
     
     async def save_session(self):
         """Save current browser session for future use"""
@@ -288,9 +300,9 @@ class BaseCrawler(ABC):
                     storage_state,
                     expires_at.isoformat()
                 )
-                print(f"[{self.broker_name}] Session saved successfully")
+                self.log.info("Session saved successfully")
         except Exception as e:
-            print(f"[{self.broker_name}] Failed to save session: {e}")
+            self.log.error(f"Failed to save session: {e}")
     
     
     def get_credentials(self) -> Optional[Dict[str, Any]]:
@@ -309,68 +321,6 @@ class BaseCrawler(ABC):
         """Parse HTML content with BeautifulSoup"""
         return BeautifulSoup(html, 'lxml')
     
-    async def human_type(self, selector: str, text: str, delay_range: tuple = (50, 150)):
-        """Type text in a human-like manner to bypass detection"""
-        import random
-        
-        element = await self.page.query_selector(selector)
-        if not element:
-            raise Exception(f"Element not found: {selector}")
-        
-        # Clear the field first by selecting all and deleting
-        await element.click()
-        await self.page.keyboard.press('Meta+a')  # Cmd+A on Mac
-        await asyncio.sleep(random.uniform(0.1, 0.3))
-        
-        # Type each character with human-like delays
-        for char in text:
-            await self.page.keyboard.type(char)
-            # Random delay between keystrokes (50-150ms)
-            delay = random.uniform(delay_range[0], delay_range[1]) / 1000
-            await asyncio.sleep(delay)
-        
-        # Small pause after typing
-        await asyncio.sleep(random.uniform(0.2, 0.5))
-    
-    async def human_click(self, selector: str):
-        """Click in a human-like manner with random delays"""
-        import random
-        
-        # Small delay before clicking
-        await asyncio.sleep(random.uniform(0.1, 0.3))
-        
-        element = await self.page.query_selector(selector)
-        if not element:
-            raise Exception(f"Element not found: {selector}")
-        
-        # Get element bounds for more realistic clicking
-        box = await element.bounding_box()
-        if box:
-            # Click at a random point within the element (not center)
-            x = box['x'] + random.uniform(0.2, 0.8) * box['width']
-            y = box['y'] + random.uniform(0.2, 0.8) * box['height']
-            await self.page.mouse.click(x, y)
-        else:
-            # Fallback to regular click
-            await element.click()
-        
-        # Small delay after clicking
-        await asyncio.sleep(random.uniform(0.1, 0.3))
-    
-    async def simulate_human_behavior(self):
-        """Simulate human-like behavior before interacting with forms"""
-        import random
-        
-        # Random mouse movements
-        for _ in range(random.randint(2, 4)):
-            x = random.randint(100, 700)
-            y = random.randint(100, 600)
-            await self.page.mouse.move(x, y)
-            await asyncio.sleep(random.uniform(0.1, 0.3))
-        
-        # Random scroll
-        await self.page.mouse.wheel(0, random.randint(-200, 200))
-        await asyncio.sleep(random.uniform(0.2, 0.5))
     
     @abstractmethod
     async def login(self) -> bool:
@@ -390,7 +340,7 @@ class BaseCrawler(ABC):
     async def crawl(self) -> CrawlerResult:
         """Main crawling method that orchestrates the entire process"""
         try:
-            print(f"[{self.broker_name}] Starting crawl...")
+            self.log.info("Starting crawl...")
             
             # Attempt login (login method handles navigation)
             login_success = await self.login()
@@ -408,7 +358,7 @@ class BaseCrawler(ABC):
             # Scrape portfolio data
             holdings = await self.scrape_portfolio()
             
-            print(f"[{self.broker_name}] Successfully scraped {len(holdings)} holdings")
+            self.log.info(f"Successfully scraped {len(holdings)} holdings")
             
             return CrawlerResult(
                 broker=self.broker_name,
@@ -417,9 +367,5 @@ class BaseCrawler(ABC):
             )
             
         except Exception as e:
-            print(f"[{self.broker_name}] Crawl failed with error: {e}")
-            return CrawlerResult(
-                broker=self.broker_name,
-                success=False,
-                error_message=str(e)
-            )
+            self.log.fatal(f"Crawl failed with error: {e}")
+            raise

@@ -29,8 +29,8 @@ async def run_merrill_crawler():
     
     print(f"✅ Found credentials for user: {creds['username']}")
     
-    # Test crawler with headless=False so you can see what's happening
-    async with MerrillCrawler(headless=False) as crawler:
+    # Test crawler with visible browser window
+    async with MerrillCrawler() as crawler:
         print("\n🚀 Starting Merrill crawl...")
         result = await crawler.crawl()
         
@@ -56,7 +56,7 @@ async def run_merrill_crawler():
                 print(f"     Current Value: ${holding.current_value}")
                 print(f"     Day Change: ${holding.day_change_dollars} ({holding.day_change_percent:.4%})")
                 print(f"     Unrealized G/L: ${holding.unrealized_gain_loss} ({holding.unrealized_gain_loss_percent:.4%})")
-                print(f"     Broker: {holding.broker}")
+                print(f"     Broker: {holding.brokers}")
                 if holding.portfolio_percentage:
                     print(f"     Portfolio %: {holding.portfolio_percentage:.4%}")
                 print()

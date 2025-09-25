@@ -15,8 +15,8 @@ from models.portfolio import Holding
 class EtradeCrawler(BaseCrawler):
     """E*TRADE crawler"""
 
-    def __init__(self, headless: bool = True):
-        super().__init__("etrade", headless)
+    def __init__(self):
+        super().__init__("etrade")
         # Login URL provided with redirect target to positions page
         self.login_url = (
             "https://us.etrade.com/etx/pxy/login?TARGET="
@@ -30,21 +30,21 @@ class EtradeCrawler(BaseCrawler):
 
     async def scrape_portfolio(self) -> List[Holding]:
         """Scrape holdings from E*TRADE positions page"""
-        print(f"[{self.broker_name}] Starting E*TRADE holdings scrape...")
+        self.log.info("Starting E*TRADE holdings scrape...")
 
-        print(f"[{self.broker_name}] Navigating to portfolio positions page...")
+        self.log.info("Navigating to portfolio positions page...")
         await self.page.goto(self.portfolio_url, wait_until='networkidle')
         await self.page.wait_for_load_state('networkidle', timeout=15000)
 
         html = await self.page.content()
         holdings = await self.parse_portfolio_html(html)
 
-        print(f"[{self.broker_name}] Found {len(holdings)} total holdings")
+        self.log.info(f"Found {len(holdings)} total holdings")
         return holdings
 
     async def login(self) -> bool:
         """Login to E*TRADE"""
-        print(f"[{self.broker_name}] Starting E*TRADE login...")
+        self.log.info("Starting E*TRADE login...")
 
         # First check if we're already logged in with a valid session
         try:
@@ -53,75 +53,75 @@ class EtradeCrawler(BaseCrawler):
 
             # If redirected straight to positions page, we're logged in
             if "/portfolios/positions" in self.page.url.lower():
-                print(f"[{self.broker_name}] Already logged in with stored session!")
+                self.log.info("Already logged in with stored session!")
                 return True
         except Exception:
             pass
 
         credentials = self.get_credentials()
         if not credentials:
-            print(f"[{self.broker_name}] No credentials found. Please add credentials first.")
-            return False
+            self.log.fatal("No credentials found. Please add credentials first.")
+            raise RuntimeError("No credentials found")
 
         username = credentials['username']
         password = credentials['password']
 
         try:
-            print(f"[{self.broker_name}] Waiting for login form to load...")
+            self.log.info("Waiting for login form to load...")
 
             username_selector = '#USER'
             password_selector = '#password'
             login_button_selector = '#mfaLogonButton'
 
             if not await self.wait_for_element(username_selector, timeout=20000):
-                print(f"[{self.broker_name}] Username field not found: {username_selector}")
-                return False
+                self.log.fatal(f"Username field not found: {username_selector}")
+                raise RuntimeError(f"Username field not found: {username_selector}")
             if not await self.wait_for_element(password_selector, timeout=20000):
-                print(f"[{self.broker_name}] Password field not found: {password_selector}")
-                return False
+                self.log.fatal(f"Password field not found: {password_selector}")
+                raise RuntimeError(f"Password field not found: {password_selector}")
 
             try:
                 await self.page.fill(username_selector, username)
-                print(f"[{self.broker_name}] Filled username in {username_selector}")
+                self.log.debug(f"Filled username in {username_selector}")
             except Exception as e:
-                print(f"[{self.broker_name}] Error filling username field: {e}")
-                return False
+                self.log.fatal(f"Error filling username field: {e}")
+                raise
 
             try:
                 await self.page.fill(password_selector, password)
-                print(f"[{self.broker_name}] Filled password in {password_selector}")
+                self.log.debug(f"Filled password in {password_selector}")
             except Exception as e:
-                print(f"[{self.broker_name}] Error filling password field: {e}")
-                return False
+                self.log.fatal(f"Error filling password field: {e}")
+                raise
 
             if not await self.wait_for_element(login_button_selector, timeout=15000):
-                print(f"[{self.broker_name}] Login button not found: {login_button_selector}")
-                return False
+                self.log.fatal(f"Login button not found: {login_button_selector}")
+                raise RuntimeError(f"Login button not found: {login_button_selector}")
 
             try:
                 await self.page.click(login_button_selector, delay=random.randint(100, 200))
-                print(f"[{self.broker_name}] Clicked login button {login_button_selector}")
+                self.log.debug(f"Clicked login button {login_button_selector}")
             except Exception as e:
-                print(f"[{self.broker_name}] Error clicking login button: {e}")
-                return False
+                self.log.fatal(f"Error clicking login button: {e}")
+                raise
 
             try:
-                print(f"[{self.broker_name}] Waiting for positions page to load...")
+                self.log.info("Waiting for positions page to load...")
                 await self.page.wait_for_url("**/portfolios/positions*", timeout=5 * 60000)
             except Exception as e:
-                print(f"[{self.broker_name}] Error waiting for positions URL: {e}")
-                return False
+                self.log.fatal(f"Error waiting for positions URL: {e}")
+                raise
 
             if "/portfolios/positions" in self.page.url.lower():
-                print(f"[{self.broker_name}] Login successful - reached positions page")
+                self.log.info("Login successful - reached positions page")
                 await self.save_session()
                 return True
 
-            print(f"[{self.broker_name}] Login failed - at URL: {self.page.url}")
-            return False
+            self.log.fatal(f"Login failed - at URL: {self.page.url}")
+            raise RuntimeError(f"Login failed - unexpected URL: {self.page.url}")
         except Exception as e:
-            print(f"[{self.broker_name}] Login failed: {e}")
-            return False
+            self.log.fatal(f"Login failed: {e}")
+            raise
 
     async def parse_portfolio_html(self, html: str) -> List[Holding]:
         """Parse the E*TRADE positions page.
@@ -132,7 +132,7 @@ class EtradeCrawler(BaseCrawler):
         try:
             return await self._parse_positions_from_dom()
         except Exception as exc:
-            print(f"[{self.broker_name}] DOM parsing error: {exc}")
+            self.log.error(f"DOM parsing error: {exc}")
 
         # Save debug artifacts for further analysis
         try:
@@ -143,9 +143,9 @@ class EtradeCrawler(BaseCrawler):
                 with open("etrade_application_dump.html", "w", encoding="utf-8") as fh:
                     fh.write(app_html)
             await self.page.screenshot(path="etrade_positions_page.png", full_page=True)
-            print(f"[{self.broker_name}] Saved debug artifacts (HTML and screenshot)")
+            self.log.info("Saved debug artifacts (HTML and screenshot)")
         except Exception as debug_exc:
-            print(f"[{self.broker_name}] Failed to capture debug artifacts: {debug_exc}")
+            self.log.error(f"Failed to capture debug artifacts: {debug_exc}")
 
         return []
 
@@ -157,7 +157,7 @@ class EtradeCrawler(BaseCrawler):
 
         raw_rows = await self._extract_positions_data_via_js()
         if not raw_rows:
-            print(f"[{self.broker_name}] No portfolio rows found in React grid")
+            self.log.warning("No portfolio rows found in React grid")
             return []
 
         def get_value(row: dict, key: str) -> str:
@@ -182,7 +182,7 @@ class EtradeCrawler(BaseCrawler):
             try:
                 return self._clean_decimal_text(value)
             except ValueError as exc:
-                print(f"[{self.broker_name}] Skipping decimal field {key} for {symbol}: {exc}")
+                self.log.warning(f"Skipping decimal field {key} for {symbol}: {exc}")
                 return Decimal('0')
 
         def parse_percent_optional(row: dict, key: str, symbol: str) -> Decimal:
@@ -192,7 +192,7 @@ class EtradeCrawler(BaseCrawler):
             try:
                 return self._clean_percentage_text(value)
             except ValueError as exc:
-                print(f"[{self.broker_name}] Skipping percent field {key} for {symbol}: {exc}")
+                self.log.warning(f"Skipping percent field {key} for {symbol}: {exc}")
                 return Decimal('0')
 
         non_holding_labels = {
@@ -216,7 +216,7 @@ class EtradeCrawler(BaseCrawler):
                 price = parse_decimal(row, "last_price", symbol)
                 current_value = parse_decimal(row, "value", symbol)
             except ValueError as exc:
-                print(f"[{self.broker_name}] Skipping row for {symbol}: {exc}")
+                self.log.warning(f"Skipping row for {symbol}: {exc}")
                 continue
 
             unit_cost = parse_decimal_optional(row, "cost_per_share", symbol)
@@ -228,7 +228,6 @@ class EtradeCrawler(BaseCrawler):
 
             holding_list.append(
                 Holding(
-                    broker="etrade",
                     symbol=symbol,
                     description=description,
                     quantity=quantity,
@@ -240,6 +239,7 @@ class EtradeCrawler(BaseCrawler):
                     day_change_dollars=day_change_dollars,
                     unrealized_gain_loss=unrealized_gain_loss,
                     unrealized_gain_loss_percent=unrealized_gain_loss_percent,
+                    brokers={self.broker_name: current_value},
                 )
             )
 

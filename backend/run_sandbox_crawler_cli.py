@@ -35,7 +35,7 @@ async def test_crawler():
     """Test the crawler functionality"""
     print("\n=== Testing Crawler ===")
     
-    async with SandboxCrawler(headless=False) as crawler:
+    async with SandboxCrawler() as crawler:
         result = await crawler.crawl()
         
         print(f"Crawl Result:")
