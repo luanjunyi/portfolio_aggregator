@@ -77,63 +77,6 @@ class MerrillCrawler(BaseCrawler):
             current_url = self.page.url
             print(f"[{self.broker_name}] Current URL: {current_url}")
             
-            # Wait for the SPA to load the login form dynamically
-            print(f"[{self.broker_name}] Waiting for login form to load...")
-            
-            
-            # Wait a bit more for JavaScript to render the form
-            await asyncio.sleep(5)
-
-            if "/TFPHoldings/" in self.page.url.lower():
-                print(f"[{self.broker_name}] Already logged in with stored session!")
-                return True
-
-            await self.page.mouse.move(100, 100)
-            
-            # Check if we need to wait for specific login form elements
-            login_form_loaded = False
-            max_wait_attempts = 10
-            
-            for attempt in range(max_wait_attempts):
-                print(f"[{self.broker_name}] Checking for login form (attempt {attempt + 1}/{max_wait_attempts})...")
-                
-                # Look for any input fields that might be username/password
-                all_inputs = await self.page.query_selector_all('input')
-                text_inputs = []
-                password_inputs = []
-                
-                for input_elem in all_inputs:
-                    input_type = await input_elem.get_attribute('type')
-                    input_name = await input_elem.get_attribute('name')
-                    input_id = await input_elem.get_attribute('id')
-                    input_placeholder = await input_elem.get_attribute('placeholder')
-                    
-                    print(f"[{self.broker_name}] Found input: type={input_type}, name={input_name}, id={input_id}, placeholder={input_placeholder}")
-                    
-                    if input_type == 'text' or input_type == 'email':
-                        text_inputs.append(input_elem)
-                    elif input_type == 'password':
-                        password_inputs.append(input_elem)
-                
-                if len(text_inputs) > 0 and len(password_inputs) > 0:
-                    login_form_loaded = True
-                    print(f"[{self.broker_name}] Login form loaded! Found {len(text_inputs)} text inputs and {len(password_inputs)} password inputs")
-                    break
-                
-                await asyncio.sleep(3)
-            
-            if not login_form_loaded:
-                print(f"[{self.broker_name}] Login form never loaded after {max_wait_attempts} attempts")
-                # Save HTML for debugging
-                debug_html = await self.page.content()
-                with open(f"merrill_debug_no_form.html", 'w', encoding='utf-8') as f:
-                    f.write(debug_html)
-                print(f"[{self.broker_name}] Saved HTML to merrill_debug_no_form.html for analysis")
-                return False
-            
-            # Simulate human behavior before interacting with form
-            await self.simulate_human_behavior()
-            
             # Look for username field
             username_selectors = [
                 '#userid',
@@ -213,9 +156,14 @@ class MerrillCrawler(BaseCrawler):
             if not login_button_found:
                 print(f"[{self.broker_name}] Could not find login button")
                 return False
+
+            # Wait for positions page or any portfolios page
+            try:
+                print(f"[{self.broker_name}] Waiting for positions page to load...")
+                await self.page.wait_for_url("**/tfpholdings/holdingsbyaccount*", timeout=5 * 60000)
+            except Exception as e:
+                print(f"[{self.broker_name}] Error waiting for positions URL: {e}")            
             
-            # Check for 2FA or security questions
-            await self.handle_2fa_if_needed()
             
             return True
                 
@@ -225,6 +173,7 @@ class MerrillCrawler(BaseCrawler):
     
     async def handle_2fa_if_needed(self) -> bool:
         """Handle 2FA if required"""
+
         return False
     
     async def parse_portfolio_html(self, html: str) -> List[Holding]:
