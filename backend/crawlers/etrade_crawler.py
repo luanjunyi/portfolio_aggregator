@@ -208,6 +208,13 @@ class EtradeCrawler(BaseCrawler):
                 raise ValueError("Symbol is required for every row")
             if symbol.lower() in non_holding_labels:
                 continue
+            
+            # Check if this is a cash position
+            if symbol.lower() == "cash":
+                cash_holding = self._parse_cash_position(row)
+                if cash_holding:
+                    holding_list.append(cash_holding)
+                continue
 
             description = get_value(row, "description") or symbol
 
@@ -245,6 +252,44 @@ class EtradeCrawler(BaseCrawler):
 
         return holding_list
 
+    def _parse_cash_position(self, row: dict) -> Holding:
+        """Parse a cash position from E*Trade data"""
+        try:
+            def get_value(key: str) -> str:
+                return (row.get(key) or "").strip()
+            
+            # Try to get cash amount from value field
+            cash_value_text = get_value("value")
+            if not cash_value_text:
+                return None
+            
+            cash_amount = self._clean_decimal_text(cash_value_text)
+            if cash_amount <= 0:
+                return None
+            
+            # Create cash holding
+            holding = Holding(
+                symbol="USD_CASH",
+                description="Cash & sweep funds",
+                quantity=cash_amount,  # Cash quantity equals the dollar amount
+                price=Decimal('1.00'),  # Cash price is always $1
+                unit_cost=Decimal('1.00'),  # Unit cost is always $1 for cash
+                cost_basis=cash_amount,  # Cost basis equals current value for cash
+                current_value=cash_amount,
+                day_change_percent=Decimal('0.00'),  # Cash doesn't have daily changes
+                day_change_dollars=Decimal('0.00'),  # Cash doesn't have daily changes
+                unrealized_gain_loss=Decimal('0.00'),  # Cash has no unrealized gain/loss
+                unrealized_gain_loss_percent=Decimal('0.00'),  # Cash has no unrealized gain/loss
+                brokers={self.broker_name: cash_amount}
+            )
+            
+            self.log.debug(f"Parsed cash holding: USD_CASH - ${cash_amount}")
+            return holding
+            
+        except Exception as e:
+            self.log.error(f"Error parsing cash position: {e}")
+            return None
+
     async def _extract_positions_data_via_js(self) -> List[dict]:
         script = r'''
 (() => {
@@ -258,13 +303,35 @@ class EtradeCrawler(BaseCrawler):
   };
 
   const rows = Array.from(grid.querySelectorAll('div[role="row"][aria-rowindex]'))
-    .filter(row => row.querySelector('[role="gridcell"]'));
+    .filter(row => row.querySelector('[role="gridcell"]') || row.querySelector('[role="rowheader"]'));
 
   const results = [];
   for (const row of rows) {
     const symbolCell = row.querySelector('[role="rowheader"][aria-colindex="1"]');
     if (!symbolCell) continue;
 
+    // Check for cash row first by looking for the cash wrapper
+    const cashWrapper = symbolCell.querySelector('.FooterCellRenderer---cash-and-transfer-wrapper---ISxOD');
+    if (cashWrapper) {
+      // This is definitely the cash row - extract the cash value
+      const cashValue = extractText(row, 12);
+      if (cashValue) {
+        results.push({
+          symbol: 'Cash',
+          description: 'Cash & sweep funds',
+          value: cashValue
+        });
+        continue;
+      }
+    }
+
+    // Check for total row and skip it
+    const totalWrapper = symbolCell.querySelector('.FooterCellRenderer---cash-and-total---hAWG4');
+    if (totalWrapper && symbolCell.textContent.toLowerCase().includes('total')) {
+      continue; // Skip total row
+    }
+
+    // Regular stock rows
     const symbolLink = symbolCell.querySelector('a');
     const symbolText = symbolLink ? (symbolLink.textContent || '') : (symbolCell.textContent || '');
     const symbol = symbolText.trim();

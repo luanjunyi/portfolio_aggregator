@@ -181,11 +181,11 @@ async def main() -> None:
             f" ({broker_details})"
         )
 
-    log.info("\nPortfolio Totals:")
-    log.info(f"  Total Value: ${portfolio.total_value}")
-    log.info(f"  Cost Basis: ${portfolio.total_cost_basis}")
-    log.info(f"  Unrealized G/L: ${portfolio.total_unrealized_gain_loss}")
-    log.info(
+    print("\nPortfolio Totals:")
+    print(f"  Total Value: ${portfolio.total_value}")
+    print(f"  Cost Basis: ${portfolio.total_cost_basis}")
+    print(f"  Unrealized G/L: ${portfolio.total_unrealized_gain_loss}")
+    print(
         "  Unrealized %: "
         + (
             f"{(portfolio.total_unrealized_gain_loss_percent * Decimal('100')):.2f}%"

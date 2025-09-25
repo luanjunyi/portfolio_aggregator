@@ -214,8 +214,19 @@ class MerrillCrawler(BaseCrawler):
                 if first_cell:
                     symbol_preview = first_cell.get_text(strip=True).lower()
                     if 'balances' in symbol_preview:
-                        self.log.info("Reached balances section, stopping row parsing")
+                        self.log.info("Reached balances section, skipping this row")
+                        continue
+                
+                # Check if this is a cash row (Money accounts)
+                try:
+                    cash_holding = self._parse_cash_row(row)
+                    if cash_holding:
+                        holdings.append(cash_holding)
+                        self.log.info("Found and parsed cash position, this should be the last")
                         break
+                except Exception as e:
+                    self.log.debug(f"Row is not a cash position: {e}")
+                
                 try:
                     holding = self._parse_position_row(row)
                     if holding:
@@ -290,6 +301,62 @@ class MerrillCrawler(BaseCrawler):
 
         except Exception as e:
             self.log.error(f"Error parsing position row: {e}")
+            return None
+
+    def _parse_cash_row(self, row) -> Holding:
+        """Parse a cash position row from Merrill portfolio table"""
+        cells = row.find_all('td')
+        if len(cells) < 9:
+            return None
+        
+        try:
+            # Check if this is a cash row by looking for "Money accounts" link
+            first_cell = cells[0]
+            money_accounts_link = first_cell.find('a')
+            if not money_accounts_link or 'money accounts' not in money_accounts_link.get_text(strip=True).lower():
+                return None
+            
+            # Extract description from the third cell (index 2)
+            description_cell = cells[2]
+            description = description_cell.get_text(strip=True) or "Cash & sweep funds"
+            
+            # Extract quantity from the sixth cell (index 5)
+            quantity_text = cells[5].get_text(strip=True)
+            if not quantity_text or quantity_text == '--':
+                return None
+            quantity = self._clean_decimal_text(quantity_text)
+            
+            # Extract current value from the ninth cell (index 8) 
+            value_text = cells[8].get_text(strip=True)
+            if not value_text or value_text == '--':
+                return None
+            current_value = self._clean_decimal_text(value_text)
+            
+            # Verify this is actually a cash position (quantity should equal current_value for cash)
+            if abs(quantity - current_value) > Decimal('0.01'):  # Allow small rounding differences
+                return None
+            
+            # Create cash holding
+            holding = Holding(
+                symbol="USD_CASH",
+                description=description,
+                quantity=current_value,  # For cash, use the dollar amount as quantity
+                price=Decimal('1.00'),  # Cash price is always $1
+                unit_cost=Decimal('1.00'),  # Unit cost is always $1 for cash
+                cost_basis=current_value,  # Cost basis equals current value for cash
+                current_value=current_value,
+                day_change_percent=Decimal('0.00'),  # Cash doesn't have daily changes
+                day_change_dollars=Decimal('0.00'),  # Cash doesn't have daily changes
+                unrealized_gain_loss=Decimal('0.00'),  # Cash has no unrealized gain/loss
+                unrealized_gain_loss_percent=Decimal('0.00'),  # Cash has no unrealized gain/loss
+                brokers={self.broker_name: current_value}
+            )
+            
+            self.log.debug(f"Parsed cash holding: USD_CASH - ${current_value}")
+            return holding
+            
+        except Exception as e:
+            self.log.debug(f"Error parsing cash row: {e}")
             return None
 
     def _extract_dollar_change(self, cell) -> Decimal:

@@ -325,6 +325,20 @@ class ChaseCrawler(BaseCrawler):
             except Exception as e:
                 self.log.error(f"Error parsing row: {e}")
         
+        # Look for cash positions
+        cash_rows = tbody.find_all('tr')
+        for row in cash_rows:
+            try:
+                # Check if this is a cash row by looking for the cash link
+                cash_link = row.find('a', {'data-testid': 'cash-and-sweep-link'})
+                if cash_link:
+                    cash_holding = self._parse_cash_row(row)
+                    if cash_holding:
+                        holdings.append(cash_holding)
+                        self.log.info("Found and parsed cash position")
+            except Exception as e:
+                self.log.error(f"Error parsing cash row: {e}")
+        
         self.log.info(f"Successfully parsed {len(holdings)} holdings")
         return holdings
     
@@ -418,6 +432,56 @@ class ChaseCrawler(BaseCrawler):
             
         except Exception as e:
             self.log.error(f"Error parsing position row: {e}")
+            return None
+    
+    def _parse_cash_row(self, row) -> Holding:
+        """Parse a cash position row from Chase portfolio table"""
+        cells = row.find_all('td')
+        if len(cells) < 9:
+            self.log.warning(f"Cash row has insufficient cells: {len(cells)}")
+            return None
+        
+        try:
+            # Cash symbol is always USD_CASH
+            symbol = "USD_CASH"
+            
+            # Description is "Cash & sweep funds"
+            description = "Cash & sweep funds"
+            
+            # For cash positions:
+            # - quantity = cash amount (same as current value)
+            # - price = 1.00 (cash is always $1 per unit)
+            # - unit_cost = 1.00 (cash cost basis is always $1 per unit)
+            # - cost_basis = cash amount (same as current value)
+            # - current_value = cash amount
+            # - day_change = 0 (cash doesn't change daily)
+            # - unrealized_gain_loss = 0 (cash has no gain/loss)
+            
+            # Extract cash value from the 4th cell (index 3) based on the HTML structure
+            cash_value_text = cells[3].get_text(strip=True)
+            cash_amount = self._clean_decimal_text(cash_value_text)
+            
+            # Create cash holding
+            holding = Holding(
+                symbol=symbol,
+                description=description,
+                quantity=cash_amount,  # Cash quantity equals the dollar amount
+                price=Decimal('1.00'),  # Cash price is always $1
+                cost_basis=cash_amount,  # Cost basis equals current value for cash
+                unit_cost=Decimal('1.00'),  # Unit cost is always $1 for cash
+                current_value=cash_amount,
+                day_change_percent=Decimal('0.00'),  # Cash doesn't have daily changes
+                day_change_dollars=Decimal('0.00'),  # Cash doesn't have daily changes
+                unrealized_gain_loss=Decimal('0.00'),  # Cash has no unrealized gain/loss
+                unrealized_gain_loss_percent=Decimal('0.00'),  # Cash has no unrealized gain/loss
+                brokers={self.broker_name: cash_amount}
+            )
+            
+            self.log.debug(f"Parsed cash holding: {symbol} - ${cash_amount}")
+            return holding
+            
+        except Exception as e:
+            self.log.error(f"Error parsing cash row: {e}")
             return None
     
     def _clean_decimal_text(self, value_str: str) -> Decimal:
