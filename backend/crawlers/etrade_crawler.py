@@ -250,6 +250,9 @@ class EtradeCrawler(BaseCrawler):
                 )
             )
 
+        # Perform sanity check
+        await self.sanity_check(holding_list)
+        
         return holding_list
 
     def _parse_cash_position(self, row: dict) -> Holding:
@@ -402,3 +405,94 @@ class EtradeCrawler(BaseCrawler):
             raise ValueError(f"No valid percentage found in text: '{value_str}'")
         result = Decimal(number_match.group()) / 100
         return -result if is_negative else result
+
+    async def sanity_check(self, holdings: List[Holding]) -> None:
+        """Compare reported totals on the page with parsed holdings totals."""
+        TOTAL_CHECK_TOLERANCE = Decimal('0.01')
+        
+        total_row_data = await self._parse_total_row()
+        if not total_row_data:
+            self.log.fatal("Could not find or parse totals row in E*TRADE portfolio.")
+            raise RuntimeError("Could not find totals row in E*TRADE portfolio")
+
+        reported_total_value = total_row_data['total_value']
+        reported_market_value = total_row_data['market_value']
+        reported_unrealized_gain = total_row_data['unrealized_gain_loss']
+
+        computed_total_value = sum(h.current_value for h in holdings)
+        computed_unrealized_gain = sum(h.unrealized_gain_loss for h in holdings)
+
+        # Check total value (should match reported total value)
+        value_diff = abs(computed_total_value - reported_total_value)
+        if value_diff / max(computed_total_value, Decimal('1')) > TOTAL_CHECK_TOLERANCE:
+            raise RuntimeError(
+                f"Total value mismatch: holdings {computed_total_value:.2f} vs reported {reported_total_value:.2f}"
+            )
+
+        # Check unrealized gain/loss
+        unrealized_diff = abs(computed_unrealized_gain - reported_unrealized_gain)
+        if unrealized_diff / max(abs(computed_unrealized_gain), Decimal('1')) > TOTAL_CHECK_TOLERANCE:
+            self.log.warning(
+                f"Unrealized gain mismatch: holdings {computed_unrealized_gain:.2f} vs reported {reported_unrealized_gain:.2f}. This might be due to rounding."
+            )
+
+        self.log.info(
+            "Sanity check passed: holdings total %s matches reported %s",
+            computed_total_value,
+            reported_total_value,
+        )
+
+    async def _parse_total_row(self) -> dict:
+        """Parse the totals row from the E*TRADE portfolio table."""
+        script = r'''
+(() => {
+  const grid = document.querySelector('div[role="grid"][aria-label="Portfolios"]');
+  if (!grid) return null;
+
+  const extractText = (row, colIndex) => {
+    const cell = row.querySelector(`[aria-colindex="${colIndex}"]`);
+    if (!cell) return '';
+    return (cell.innerText || '').trim();
+  };
+
+  // Find the totals row by looking for the "Total" text
+  const rows = Array.from(grid.querySelectorAll('div[role="row"][aria-rowindex]'));
+  for (const row of rows) {
+    const symbolCell = row.querySelector('[role="rowheader"][aria-colindex="1"]');
+    if (!symbolCell) continue;
+    
+    const totalWrapper = symbolCell.querySelector('.FooterCellRenderer---cash-and-total---hAWG4');
+    if (totalWrapper && symbolCell.textContent.toLowerCase().includes('total')) {
+      // Found the totals row
+      return {
+        day_change: extractText(row, 3),      // Column 2 (index 2): Day's gain/loss
+        market_value: extractText(row, 9),    // Column 8 (index 8): Market value
+        total_gain: extractText(row, 10),     // Column 9 (index 9): Total gain/loss
+        total_gain_percent: extractText(row, 11), // Column 10 (index 10): Total gain/loss %
+        total_value: extractText(row, 12)     // Column 11 (index 11): Total value
+      };
+    }
+  }
+  
+  return null;
+})()
+        '''
+        
+        try:
+            result = await self.page.evaluate(script)
+            if not result:
+                return None
+
+            # Parse the extracted values
+            total_value = self._clean_decimal_text(result['total_value'])
+            market_value = self._clean_decimal_text(result['market_value'])
+            unrealized_gain = self._clean_decimal_text(result['total_gain'])
+
+            return {
+                'total_value': total_value,
+                'market_value': market_value,
+                'unrealized_gain_loss': unrealized_gain,
+            }
+        except Exception as e:
+            self.log.error(f"Error parsing totals row: {e}")
+            return None

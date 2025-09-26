@@ -17,6 +17,7 @@ from models.portfolio import Holding
 
 class MerrillCrawler(BaseCrawler):
     """Merrill Edge crawler"""
+
     
     def __init__(self):
         super().__init__("merrill_edge")
@@ -80,104 +81,42 @@ class MerrillCrawler(BaseCrawler):
         username = credentials['username']
         password = credentials['password']
         
+        # Wait for page to fully load
+        current_url = self.page.url
+        self.log.debug(f"Current URL: {current_url}")
+        
+        # Fill username field - crash if not found
         try:
-            # Wait for page to fully load
-            current_url = self.page.url
-            self.log.debug(f"Current URL: {current_url}")
-            
-            # Look for username field
-            username_selectors = [
-                '#userid',
-                'input[name="userid"]',
-                'input[type="text"]',
-                '#username',
-                'input[name="username"]'
-            ]
-            
-            username_found = False
-            for selector in username_selectors:
-                try:
-                    element = await self.page.query_selector(selector)
-                    if element:
-                        await self.page.fill(selector, username)
-                        username_found = True
-                        self.log.debug(f"Found username field: {selector}")
-                        break
-                except Exception as err:
-                    self.log.error(f"Error filling username field: {err}")
-                    continue
-            
-            if not username_found:
-                self.log.fatal("Username field not found")
-                raise RuntimeError("Username field not found")
-            
-            # Look for password field
-            password_selectors = [
-                '#password',
-                'input[name="password"]',
-                'input[type="password"]',
-                '#passwd'
-            ]
-            
-            password_found = False
-            for selector in password_selectors:
-                try:
-                    element = await self.page.query_selector(selector)
-                    if element:
-                        await self.page.fill(selector, password)
-                        password_found = True
-                        self.log.debug(f"Found password field: {selector}")
-                        break
-                except Exception as err:
-                    self.log.error(f"Error filling password field: {err}")
-                    continue
-            
-            if not password_found:
-                self.log.fatal("Password field not found")
-                raise RuntimeError("Password field not found")
-            
-            # Click login button
-            login_button_selectors = [
-                'button[type="submit"]',
-                'input[type="submit"]',
-                'button:has-text("Sign In")',
-                'button:has-text("Log In")',
-                'input[value*="Sign"]',
-                '#signin-btn',
-                '.signin-btn',
-                'button'  # fallback
-            ]
-            
-            login_button_found = False
-            for selector in login_button_selectors:
-                try:
-                    element = await self.page.query_selector(selector)
-                    if element:
-                        await self.page.click(selector, delay=random.randint(100, 200))
-                        login_button_found = True
-                        self.log.debug(f"Clicked login button: {selector}")
-                        break
-                except Exception as err:
-                    self.log.error(f"Error clicking login button: {err}")
-                    continue
-            
-            if not login_button_found:
-                self.log.fatal("Could not find login button")
-                raise RuntimeError("Could not find login button")
-
-            # Wait for positions page or any portfolios page
-            try:
-                self.log.info("Waiting for positions page to load...")
-                await self.page.wait_for_url("**/TFPHoldings/HoldingsByAccount.aspx", timeout=5 * 60000)
-            except Exception as e:
-                self.log.warning(f"Error waiting for positions URL: {e}")            
-            
-            
-            return True
-                
+            await self.page.fill('#oid', username)
+            self.log.debug("Filled username field")
         except Exception as e:
-            self.log.fatal(f"Login failed: {e}")
-            raise
+            self.log.fatal(f"Username field #oid not found: {e}")
+            raise RuntimeError(f"Username field #oid not found: {e}")
+        
+        # Fill password field - crash if not found  
+        try:
+            await self.page.fill('#pass', password)
+            self.log.debug("Filled password field")
+        except Exception as e:
+            self.log.fatal(f"Password field #pass not found: {e}")
+            raise RuntimeError(f"Password field #pass not found: {e}")
+        
+        # Click login button - crash if not found
+        try:
+            await self.page.click('#secure-signin-submit', delay=random.randint(100, 200))
+            self.log.debug("Clicked login button")
+        except Exception as e:
+            self.log.fatal(f"Login button #secure-signin-submit not found: {e}")
+            raise RuntimeError(f"Login button #secure-signin-submit not found: {e}")
+
+        # Wait for positions page or any portfolios page
+        try:
+            self.log.info("Waiting for positions page to load...")
+            await self.page.wait_for_url("**/TFPHoldings/HoldingsByAccount.aspx", timeout=5 * 60000)
+        except Exception as e:
+            self.log.warning(f"Error waiting for positions URL: {e}")            
+        
+        return True
     
     async def handle_2fa_if_needed(self) -> bool:
         """Handle 2FA if required"""
@@ -208,6 +147,7 @@ class MerrillCrawler(BaseCrawler):
             if not tbody:
                 continue
 
+            table_holdings: List[Holding] = []
             rows = tbody.find_all('tr')
             for row in rows:
                 first_cell = row.find('td')
@@ -222,6 +162,7 @@ class MerrillCrawler(BaseCrawler):
                     cash_holding = self._parse_cash_row(row)
                     if cash_holding:
                         holdings.append(cash_holding)
+                        table_holdings.append(cash_holding)
                         self.log.info("Found and parsed cash position, this should be the last")
                         break
                 except Exception as e:
@@ -231,15 +172,18 @@ class MerrillCrawler(BaseCrawler):
                     holding = self._parse_position_row(row)
                     if holding:
                         holdings.append(holding)
+                        table_holdings.append(holding)
                 except Exception as e:
                     self.log.error(f"Error parsing row: {e}")
-            self.log.debug(f"found {len(holdings)} holdings from table")
+            self.log.debug(f"found {len(table_holdings)} holdings from table")
+            self.sanity_check(table, table_holdings)
 
         # Combine holdings by symbol
         combined_holdings = self._combine_holdings_by_symbol(holdings)
         
         self.log.info(f"Successfully parsed {len(holdings)} individual holdings")
         self.log.info(f"Combined into {len(combined_holdings)} unique symbols")
+
         return combined_holdings
     
     def _parse_position_row(self, row) -> Holding:
@@ -358,6 +302,76 @@ class MerrillCrawler(BaseCrawler):
         except Exception as e:
             self.log.debug(f"Error parsing cash row: {e}")
             return None
+
+    def sanity_check(self, table, table_holdings: List[Holding]) -> bool:
+        """Compare reported totals within a single table against parsed holdings."""
+        TOTAL_CHECK_TOLERANCE = Decimal('0.01')
+
+        total_row = self._extract_total_row(table)
+        if total_row is None:
+            raise RuntimeError("Total row not found in Merrill holdings table")
+
+        reported_total_value = total_row['current_value']
+        reported_unrealized_gain = total_row['unrealized_gain_loss']
+
+        computed_total_value = sum(holding.current_value for holding in table_holdings)
+        computed_unrealized_gain = sum(holding.unrealized_gain_loss for holding in table_holdings)
+
+        value_diff = computed_total_value - reported_total_value
+        unrealized_diff = computed_unrealized_gain - reported_unrealized_gain
+
+        if abs(value_diff) / reported_total_value > TOTAL_CHECK_TOLERANCE:
+            self.log.fatal(
+                f"Total value mismatch: holdings {computed_total_value} vs reported {reported_total_value}"
+            )
+            return False
+
+        if abs(unrealized_diff) / reported_unrealized_gain > TOTAL_CHECK_TOLERANCE:
+            self.log.fatal(
+                "Unrealized gain mismatch: holdings "
+                f"{computed_unrealized_gain} vs reported {reported_unrealized_gain}"
+            )
+            return False
+
+
+        return True
+
+    def _extract_total_row(self, table) -> Dict[str, Decimal] | None:
+        tbody = table.find('tbody')
+        if not tbody:
+            return None
+
+        for row in tbody.find_all('tr'):
+            first_cell = row.find('td')
+            if not first_cell:
+                continue
+
+            if first_cell.get_text(strip=True).lower() == 'total':
+                return self._parse_total_row(row)
+
+        return None
+
+    def _parse_total_row(self, row) -> Dict[str, Decimal]:
+        cells = row.find_all('td')
+        if len(cells) < 10:
+            raise RuntimeError("Total row missing expected cells")
+
+        total_value_text = cells[8].get_text(strip=True)
+        if not total_value_text or total_value_text == '--':
+            raise RuntimeError("Total row missing total value")
+        reported_total_value = self._clean_decimal_text(total_value_text)
+
+        unrealized_cell = cells[9]
+        unrealized_text = unrealized_cell.get_text(strip=True)
+        if not unrealized_text or unrealized_text == '--':
+            reported_unrealized_gain = Decimal('0')
+        else:
+            reported_unrealized_gain = self._extract_dollar_change(unrealized_cell)
+
+        return {
+            'current_value': reported_total_value,
+            'unrealized_gain_loss': reported_unrealized_gain,
+        }
 
     def _extract_dollar_change(self, cell) -> Decimal:
         target = cell.find('div', class_=lambda value: value and 'dol' in value.split())

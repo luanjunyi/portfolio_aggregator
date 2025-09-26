@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from decimal import Decimal
 import asyncio
 import re
@@ -31,10 +31,6 @@ class ChaseCrawler(BaseCrawler):
         """Scrape holdings from Chase"""
         self.log.info("Starting Chase holdings scrape...")
         
-        # Login (navigation is handled inside login method)
-        if not await self.login():
-            self.log.fatal("Login failed")
-            raise RuntimeError("Login failed")
         
         self.log.info("Navigating to portfolio page...")
         
@@ -58,15 +54,16 @@ class ChaseCrawler(BaseCrawler):
         
         # First check if we're already logged in with a valid session
         try:
-            await self.page.goto(self.login_url, wait_until='networkidle')
-            current_url = self.page.url
-            
+            await self.page.goto(self.login_url, wait_until='domcontentloaded')
+            await asyncio.sleep(5)
             # If we're already on the dashboard, we're logged in
-            if "dashboard/overview" in current_url:
+            # Look for the accounts accordion container which indicates we're on the dashboard
+            dashboard_element = await self.page.query_selector('.accounts-group-accordion-container')
+            if dashboard_element:
                 self.log.info("Already logged in with stored session!")
                 return True
-        except Exception:
-            pass  # Continue with normal login if session check fails
+        except Exception as e:
+            self.log.fatal(f"Failed to check login session: {e}")
         
         # Get stored credentials
         credentials = self.get_credentials()
@@ -224,7 +221,7 @@ class ChaseCrawler(BaseCrawler):
                 return True
             else:
                 self.log.fatal(f"Login failed - reached URL: {self.page.url}, expected */dashboard/overview")
-                raise RuntimeError(f"Login failed - unexpected URL: {self.page.url}")
+
                 
         except Exception as e:
             self.log.fatal(f"Login failed: {e}")
@@ -340,6 +337,9 @@ class ChaseCrawler(BaseCrawler):
                 self.log.error(f"Error parsing cash row: {e}")
         
         self.log.info(f"Successfully parsed {len(holdings)} holdings")
+        self.sanity_check(soup, holdings)
+
+
         return holdings
     
     def _parse_position_row(self, row) -> Holding:
@@ -529,6 +529,62 @@ class ChaseCrawler(BaseCrawler):
         
         raise ValueError(f"No valid price found at start of text: '{price_text}'")
     
+    def sanity_check(self, soup: BeautifulSoup, holdings: List[Holding]) -> None:
+        """Compare reported totals on the page with parsed holdings totals."""
+        TOTAL_CHECK_TOLERANCE = Decimal('0.01')
+        total_row_data = self._parse_total_row(soup)
+
+        reported_total_value = total_row_data['current_value']
+        reported_unrealized_gain = total_row_data['unrealized_gain_loss']
+
+        computed_total_value = sum(h.current_value for h in holdings)
+        computed_unrealized_gain = sum(h.unrealized_gain_loss for h in holdings)
+
+        value_diff = abs(computed_total_value - reported_total_value)
+        if value_diff / computed_total_value > TOTAL_CHECK_TOLERANCE:
+            self.log.fatal(
+                f"Total value mismatch: holdings {computed_total_value:.2f} vs reported {reported_total_value:.2f}"
+            )
+
+        unrealized_diff = abs(computed_unrealized_gain - reported_unrealized_gain)
+        # Use a slightly larger tolerance for unrealized gain due to potential rounding differences
+        if unrealized_diff / computed_unrealized_gain > TOTAL_CHECK_TOLERANCE:
+            self.log.fatal(
+                f"Unrealized gain mismatch: holdings {computed_unrealized_gain:.2f} vs reported {reported_unrealized_gain:.2f}. This might be due to rounding."
+            )
+
+        self.log.info(
+            "Sanity check passed: holdings total %s matches reported %s",
+            computed_total_value,
+            reported_total_value,
+        )
+
+    def _parse_total_row(self, soup: BeautifulSoup) -> Optional[Dict[str, Decimal]]:
+        """Parse the totals row from the Chase portfolio table."""
+        try:
+            totals_row = soup.find('tr', {'data-testid': 'position-totals-row'})
+            if not totals_row:
+                self.log.fatal("Could not find totals row in Chase portfolio.")
+
+            cells = totals_row.find_all('td')
+            if len(cells) < 7:
+                self.log.fatal("Could not find totals row in Chase portfolio.")
+
+            # Total Market Value is in the 4th cell (index 3)
+            total_value_text = cells[3].get_text(strip=True)
+            reported_total_value = self._clean_decimal_text(total_value_text)
+
+            # Total Unrealized Gain/Loss is in the 6th cell (index 5)
+            unrealized_gain_loss_text = cells[5].get_text(strip=True)
+            reported_unrealized_gain = self._clean_decimal_text(unrealized_gain_loss_text)
+
+            return {
+                'current_value': reported_total_value,
+                'unrealized_gain_loss': reported_unrealized_gain,
+            }
+        except Exception as e:
+            self.log.fatal(f"Error parsing totals row: {e}")
+
     def _clean_percentage_text(self, value_str: str) -> Decimal:
         """Clean percentage text and convert to Decimal (as decimal, not percentage)"""
         if not value_str:
