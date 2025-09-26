@@ -116,25 +116,19 @@ def _assign_portfolio_percentages(holdings: List[Holding]) -> List[Holding]:
 
 async def _run_crawler(crawler_cls: CrawlerType) -> CrawlerResult:
     crawler = crawler_cls()
-    try:
-        async with crawler:
-            return await crawler.crawl()
-    except Exception as exc:  # pragma: no cover - defensive safety net
-        return CrawlerResult(
-            broker=crawler.broker_name,
-            success=False,
-            holdings=[],
-            error_message=str(exc),
-            session_valid=False,
-        )
+    async with crawler:
+        return await crawler.crawl()
 
 
 async def fetch_all_positions() -> Portfolio:
     results: List[CrawlerResult] = []
     for crawler_cls in BROKER_CRAWLERS:
-        result = await _run_crawler(crawler_cls)
-        results.append(result)
-
+        try:
+            result = await _run_crawler(crawler_cls)
+            results.append(result)
+        except Exception as exc:
+            log.fatal(f"Error running crawler {crawler_cls}: {exc}")
+            
     combined_holdings = _combine_successful_holdings(results)
     holdings_with_percentages = _assign_portfolio_percentages(combined_holdings)
 

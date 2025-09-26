@@ -1,6 +1,9 @@
-from pydantic import BaseModel, Field
-from typing import Dict, List, Optional
+import json
 from datetime import datetime
+from typing import Dict, List, Optional
+
+from pydantic import BaseModel, Field
+import pandas as pd
 
 
 class Holding(BaseModel):
@@ -29,6 +32,16 @@ class Portfolio(BaseModel):
     total_unrealized_gain_loss_percent: float
     last_updated: datetime
     brokers_updated: List[str]  # Which brokers were successfully scraped
+
+    def to_dataframe(self) -> pd.DataFrame:
+        rows: List[Dict[str, object]] = []
+        for holding in self.holdings:
+            row = holding.model_dump()
+            brokers_mapping = row.get("brokers", {}) or {}
+            row["brokers"] = json.dumps(brokers_mapping, sort_keys=True)
+            rows.append(row)
+
+        return pd.DataFrame(rows)
 
 
 class CrawlerResult(BaseModel):
