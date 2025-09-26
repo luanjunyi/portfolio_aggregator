@@ -31,7 +31,8 @@ class Portfolio(BaseModel):
     total_unrealized_gain_loss: float
     total_unrealized_gain_loss_percent: float
     last_updated: datetime
-    brokers_updated: List[str]  # Which brokers were successfully scraped
+    day_change_percent: float
+    day_change_dollars: float
 
     def to_dataframe(self) -> pd.DataFrame:
         rows: List[Dict[str, object]] = []

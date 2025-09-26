@@ -140,7 +140,12 @@ async def fetch_all_positions() -> Portfolio:
     if total_cost_basis != 0:
         total_unrealized_percent = total_unrealized / total_cost_basis
 
-    brokers_updated = [result.broker for result in results if result.success]
+    total_day_change_dollars = _float_sum(h.day_change_dollars for h in holdings_with_percentages)
+
+    total_day_change_percent = 0.0
+    prior_value = total_value - total_day_change_dollars
+    if prior_value != 0:
+        total_day_change_percent = total_day_change_dollars / prior_value
 
     portfolio = Portfolio(
         holdings=holdings_with_percentages,
@@ -149,7 +154,8 @@ async def fetch_all_positions() -> Portfolio:
         total_unrealized_gain_loss=total_unrealized,
         total_unrealized_gain_loss_percent=total_unrealized_percent,
         last_updated=datetime.utcnow(),
-        brokers_updated=brokers_updated,
+        day_change_percent=total_day_change_percent,
+        day_change_dollars=total_day_change_dollars,
     )
 
     for result in results:
@@ -178,6 +184,9 @@ async def main() -> None:
     print(f"  Total Value: ${portfolio.total_value}")
     print(f"  Cost Basis: ${portfolio.total_cost_basis}")
     print(f"  Unrealized G/L: ${portfolio.total_unrealized_gain_loss}")
+    print(f"  Unrealized %: {portfolio.total_unrealized_gain_loss_percent}")
+    print(f"  Day Gain: ${portfolio.day_change_dollars:.2f} ({portfolio.day_change_percent * 100:.2f}%)")
+    
     print(
         "  Unrealized %: "
         + (

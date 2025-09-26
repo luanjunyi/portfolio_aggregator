@@ -352,12 +352,7 @@ class ChaseCrawler(BaseCrawler):
             # Extract symbol from first cell
             symbol_cell = cells[0]
             symbol_link = symbol_cell.find('a', {'data-testid': lambda x: x and x.startswith('symbol-position-')})
-            if symbol_link:
-                symbol_text = symbol_link.get_text(strip=True)
-                # For options, the symbol includes the full option description
-                symbol = symbol_text.split()[0] if symbol_text else "UNKNOWN"
-            else:
-                symbol = "UNKNOWN"
+            symbol = symbol_link.get_text(strip=True)
             
             # Extract description from second cell
             description = cells[1].get_text(strip=True) if cells[1] else ""
