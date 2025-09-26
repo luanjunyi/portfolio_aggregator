@@ -1,5 +1,4 @@
 from typing import List, Dict, Any
-from decimal import Decimal
 import asyncio
 import re
 import random
@@ -277,7 +276,7 @@ class MerrillCrawler(BaseCrawler):
             current_value = self._clean_decimal_text(value_text)
             
             # Verify this is actually a cash position (quantity should equal current_value for cash)
-            if abs(quantity - current_value) > Decimal('0.01'):  # Allow small rounding differences
+            if abs(quantity - current_value) > 0.01:  # Allow small rounding differences
                 return None
             
             # Create cash holding
@@ -285,14 +284,14 @@ class MerrillCrawler(BaseCrawler):
                 symbol="USD_CASH",
                 description=description,
                 quantity=current_value,  # For cash, use the dollar amount as quantity
-                price=Decimal('1.00'),  # Cash price is always $1
-                unit_cost=Decimal('1.00'),  # Unit cost is always $1 for cash
+                price=1.00,  # Cash price is always $1
+                unit_cost=1.00,  # Unit cost is always $1 for cash
                 cost_basis=current_value,  # Cost basis equals current value for cash
                 current_value=current_value,
-                day_change_percent=Decimal('0.00'),  # Cash doesn't have daily changes
-                day_change_dollars=Decimal('0.00'),  # Cash doesn't have daily changes
-                unrealized_gain_loss=Decimal('0.00'),  # Cash has no unrealized gain/loss
-                unrealized_gain_loss_percent=Decimal('0.00'),  # Cash has no unrealized gain/loss
+                day_change_percent=0.00,  # Cash doesn't have daily changes
+                day_change_dollars=0.00,  # Cash doesn't have daily changes
+                unrealized_gain_loss=0.00,  # Cash has no unrealized gain/loss
+                unrealized_gain_loss_percent=0.00,  # Cash has no unrealized gain/loss
                 brokers={self.broker_name: current_value}
             )
             
@@ -305,7 +304,7 @@ class MerrillCrawler(BaseCrawler):
 
     def sanity_check(self, table, table_holdings: List[Holding]) -> bool:
         """Compare reported totals within a single table against parsed holdings."""
-        TOTAL_CHECK_TOLERANCE = Decimal('0.01')
+        TOTAL_CHECK_TOLERANCE = 0.01
 
         total_row = self._extract_total_row(table)
         if total_row is None:
@@ -336,7 +335,7 @@ class MerrillCrawler(BaseCrawler):
 
         return True
 
-    def _extract_total_row(self, table) -> Dict[str, Decimal] | None:
+    def _extract_total_row(self, table) -> Dict[str, float] | None:
         tbody = table.find('tbody')
         if not tbody:
             return None
@@ -351,7 +350,7 @@ class MerrillCrawler(BaseCrawler):
 
         return None
 
-    def _parse_total_row(self, row) -> Dict[str, Decimal]:
+    def _parse_total_row(self, row) -> Dict[str, float]:
         cells = row.find_all('td')
         if len(cells) < 10:
             raise RuntimeError("Total row missing expected cells")
@@ -364,7 +363,7 @@ class MerrillCrawler(BaseCrawler):
         unrealized_cell = cells[9]
         unrealized_text = unrealized_cell.get_text(strip=True)
         if not unrealized_text or unrealized_text == '--':
-            reported_unrealized_gain = Decimal('0')
+            reported_unrealized_gain = 0.0
         else:
             reported_unrealized_gain = self._extract_dollar_change(unrealized_cell)
 
@@ -373,21 +372,21 @@ class MerrillCrawler(BaseCrawler):
             'unrealized_gain_loss': reported_unrealized_gain,
         }
 
-    def _extract_dollar_change(self, cell) -> Decimal:
+    def _extract_dollar_change(self, cell) -> float:
         target = cell.find('div', class_=lambda value: value and 'dol' in value.split())
         text = (target.get_text(strip=True) if target else cell.get_text(strip=True))
         if not text:
-            return Decimal('0')
+            return 0.0
         return self._clean_decimal_text(text)
 
-    def _extract_percentage_change(self, cell) -> Decimal:
+    def _extract_percentage_change(self, cell) -> float:
         target = cell.find('div', class_=lambda value: value and 'per' in value.split())
         text = (target.get_text(strip=True) if target else cell.get_text(strip=True))
         if not text:
-            return Decimal('0')
+            return 0.0
         return self._clean_percentage_text(text)
     
-    def _clean_decimal_text(self, value_str: str) -> Decimal:
+    def _clean_decimal_text(self, value_str: str) -> float:
         """Clean text and extract decimal value, handling Merrill-specific formatting"""
         if not value_str:
             raise ValueError("Value string cannot be empty")
@@ -409,14 +408,14 @@ class MerrillCrawler(BaseCrawler):
         if number_match:
             number_str = number_match.group()
             try:
-                result = Decimal(number_str)
+                result = float(number_str)
                 return -result if is_negative else result
             except Exception as e:
-                raise ValueError(f"Failed to convert '{number_str}' to Decimal: {e}")
+                raise ValueError(f"Failed to convert '{number_str}' to float: {e}")
         
         raise ValueError(f"No valid number found in text: '{value_str}'")
     
-    def _extract_first_price(self, price_text: str) -> Decimal:
+    def _extract_first_price(self, price_text: str) -> float:
         """Extract the first price from complex text"""
         if not price_text:
             raise ValueError("Price text cannot be empty")
@@ -425,13 +424,13 @@ class MerrillCrawler(BaseCrawler):
         number_match = re.match(r'^(\d+\.?\d*)', price_text.strip())
         if number_match:
             try:
-                return Decimal(number_match.group(1))
+                return float(number_match.group(1))
             except Exception as e:
-                raise ValueError(f"Failed to convert price '{number_match.group(1)}' to Decimal: {e}")
+                raise ValueError(f"Failed to convert price '{number_match.group(1)}' to float: {e}")
         
         raise ValueError(f"No valid price found at start of text: '{price_text}'")
     
-    def _clean_percentage_text(self, value_str: str) -> Decimal:
+    def _clean_percentage_text(self, value_str: str) -> float:
         """Clean percentage text and convert to Decimal (as decimal, not percentage)"""
         if not value_str:
             raise ValueError("Percentage string cannot be empty")
@@ -458,10 +457,10 @@ class MerrillCrawler(BaseCrawler):
         if number_match:
             number_str = number_match.group()
             try:
-                result = Decimal(number_str) / 100  # Convert percentage to decimal
+                result = float(number_str) / 100  # Convert percentage to decimal
                 return -result if is_negative else result
             except Exception as e:
-                raise ValueError(f"Failed to convert percentage '{number_str}' to Decimal: {e}")
+                raise ValueError(f"Failed to convert percentage '{number_str}' to float: {e}")
         
         raise ValueError(f"No valid percentage found in text: '{value_str}'")
     
@@ -501,12 +500,12 @@ class MerrillCrawler(BaseCrawler):
             weighted_avg_price = total_current_value / total_quantity
             weighted_avg_unit_cost = total_cost_basis / total_quantity
         else:
-            weighted_avg_price = Decimal('0')
-            weighted_avg_unit_cost = Decimal('0')
+            weighted_avg_price = 0.0
+            weighted_avg_unit_cost = 0.0
         
         # Calculate percentages
-        day_change_percent = Decimal('0')
-        unrealized_gain_loss_percent = Decimal('0')
+        day_change_percent = 0.0
+        unrealized_gain_loss_percent = 0.0
         
         if total_current_value != 0:
             day_change_percent = total_day_change_dollars / (total_current_value - total_day_change_dollars)

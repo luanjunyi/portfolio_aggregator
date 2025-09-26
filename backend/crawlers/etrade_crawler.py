@@ -1,5 +1,4 @@
 from typing import List
-from decimal import Decimal
 import asyncio
 import re
 import random
@@ -163,37 +162,37 @@ class EtradeCrawler(BaseCrawler):
         def get_value(row: dict, key: str) -> str:
             return (row.get(key) or "").strip()
 
-        def parse_decimal(row: dict, key: str, symbol: str) -> Decimal:
+        def parse_decimal(row: dict, key: str, symbol: str) -> float:
             value = get_value(row, key)
             if not value:
                 raise ValueError(f"Missing value for {key} (symbol={symbol})")
             return self._clean_decimal_text(value)
 
-        def parse_percent(row: dict, key: str, symbol: str) -> Decimal:
+        def parse_percent(row: dict, key: str, symbol: str) -> float:
             value = get_value(row, key)
             if not value:
                 raise ValueError(f"Missing value for {key} (symbol={symbol})")
             return self._clean_percentage_text(value)
 
-        def parse_decimal_optional(row: dict, key: str, symbol: str) -> Decimal:
+        def parse_decimal_optional(row: dict, key: str, symbol: str) -> float:
             value = get_value(row, key)
             if not value:
-                return Decimal('0')
+                return 0.0
             try:
                 return self._clean_decimal_text(value)
             except ValueError as exc:
                 self.log.warning(f"Skipping decimal field {key} for {symbol}: {exc}")
-                return Decimal('0')
+                return 0.0
 
-        def parse_percent_optional(row: dict, key: str, symbol: str) -> Decimal:
+        def parse_percent_optional(row: dict, key: str, symbol: str) -> float:
             value = get_value(row, key)
             if not value:
-                return Decimal('0')
+                return 0.0
             try:
                 return self._clean_percentage_text(value)
             except ValueError as exc:
                 self.log.warning(f"Skipping percent field {key} for {symbol}: {exc}")
-                return Decimal('0')
+                return 0.0
 
         non_holding_labels = {
             "transfer money",
@@ -275,14 +274,14 @@ class EtradeCrawler(BaseCrawler):
                 symbol="USD_CASH",
                 description="Cash & sweep funds",
                 quantity=cash_amount,  # Cash quantity equals the dollar amount
-                price=Decimal('1.00'),  # Cash price is always $1
-                unit_cost=Decimal('1.00'),  # Unit cost is always $1 for cash
+                price=1.00,  # Cash price is always $1
+                unit_cost=1.00,  # Unit cost is always $1 for cash
                 cost_basis=cash_amount,  # Cost basis equals current value for cash
                 current_value=cash_amount,
-                day_change_percent=Decimal('0.00'),  # Cash doesn't have daily changes
-                day_change_dollars=Decimal('0.00'),  # Cash doesn't have daily changes
-                unrealized_gain_loss=Decimal('0.00'),  # Cash has no unrealized gain/loss
-                unrealized_gain_loss_percent=Decimal('0.00'),  # Cash has no unrealized gain/loss
+                day_change_percent=0.00,  # Cash doesn't have daily changes
+                day_change_dollars=0.00,  # Cash doesn't have daily changes
+                unrealized_gain_loss=0.00,  # Cash has no unrealized gain/loss
+                unrealized_gain_loss_percent=0.00,  # Cash has no unrealized gain/loss
                 brokers={self.broker_name: cash_amount}
             )
             
@@ -376,7 +375,7 @@ class EtradeCrawler(BaseCrawler):
 
         return rows
 
-    def _clean_decimal_text(self, value_str: str) -> Decimal:
+    def _clean_decimal_text(self, value_str: str) -> float:
         if not value_str:
             raise ValueError("Value string cannot be empty")
         value_str = value_str.strip()
@@ -388,10 +387,10 @@ class EtradeCrawler(BaseCrawler):
         number_match = re.search(r'-?\d+\.?\d*', cleaned)
         if not number_match:
             raise ValueError(f"No valid number found in text: '{value_str}'")
-        result = Decimal(number_match.group())
+        result = float(number_match.group())
         return -result if is_negative else result
 
-    def _clean_percentage_text(self, value_str: str) -> Decimal:
+    def _clean_percentage_text(self, value_str: str) -> float:
         if not value_str:
             raise ValueError("Percentage string cannot be empty")
         value_str = value_str.strip()
@@ -403,12 +402,12 @@ class EtradeCrawler(BaseCrawler):
         number_match = re.search(r'-?\d+\.?\d*', cleaned)
         if not number_match:
             raise ValueError(f"No valid percentage found in text: '{value_str}'")
-        result = Decimal(number_match.group()) / 100
+        result = float(number_match.group()) / 100
         return -result if is_negative else result
 
     async def sanity_check(self, holdings: List[Holding]) -> None:
         """Compare reported totals on the page with parsed holdings totals."""
-        TOTAL_CHECK_TOLERANCE = Decimal('0.01')
+        TOTAL_CHECK_TOLERANCE = 0.01
         
         total_row_data = await self._parse_total_row()
         if not total_row_data:
@@ -424,14 +423,14 @@ class EtradeCrawler(BaseCrawler):
 
         # Check total value (should match reported total value)
         value_diff = abs(computed_total_value - reported_total_value)
-        if value_diff / max(computed_total_value, Decimal('1')) > TOTAL_CHECK_TOLERANCE:
+        if value_diff / max(computed_total_value, 1.0) > TOTAL_CHECK_TOLERANCE:
             raise RuntimeError(
                 f"Total value mismatch: holdings {computed_total_value:.2f} vs reported {reported_total_value:.2f}"
             )
 
         # Check unrealized gain/loss
         unrealized_diff = abs(computed_unrealized_gain - reported_unrealized_gain)
-        if unrealized_diff / max(abs(computed_unrealized_gain), Decimal('1')) > TOTAL_CHECK_TOLERANCE:
+        if unrealized_diff / max(abs(computed_unrealized_gain), 1.0) > TOTAL_CHECK_TOLERANCE:
             self.log.warning(
                 f"Unrealized gain mismatch: holdings {computed_unrealized_gain:.2f} vs reported {reported_unrealized_gain:.2f}. This might be due to rounding."
             )

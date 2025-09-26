@@ -1,5 +1,4 @@
 from typing import List
-from decimal import Decimal
 import asyncio
 
 import sys
@@ -51,41 +50,47 @@ class SandboxCrawler(BaseCrawler):
             Holding(
                 symbol="AAPL",
                 description="Apple Inc.",
-                quantity=Decimal("100"),
-                unit_cost=Decimal("150.00"),
-                cost_basis=Decimal("15000.00"),
-                current_value=Decimal("17500.00"),
-                day_change_percent=Decimal("1.5"),
-                unrealized_gain_loss=Decimal("2500.00"),
-                unrealized_gain_loss_percent=Decimal("16.67"),
-                portfolio_percentage=Decimal("35.0"),
-                brokers={self.broker_name: Decimal("17500.00")}
+                quantity=100.0,
+                price=175.0,
+                unit_cost=150.00,
+                cost_basis=15000.00,
+                current_value=17500.00,
+                day_change_percent=0.015,
+                day_change_dollars=261.90,
+                unrealized_gain_loss=2500.00,
+                unrealized_gain_loss_percent=0.1667,
+                portfolio_percentage=0.35,
+                brokers={self.broker_name: 17500.00}
             ),
             Holding(
                 symbol="GOOGL",
                 description="Alphabet Inc. Class A",
-                quantity=Decimal("50"),
-                unit_cost=Decimal("120.00"),
-                cost_basis=Decimal("6000.00"),
-                current_value=Decimal("7250.00"),
-                day_change_percent=Decimal("-0.8"),
-                unrealized_gain_loss=Decimal("1250.00"),
-                unrealized_gain_loss_percent=Decimal("20.83"),
-                portfolio_percentage=Decimal("14.5"),
-                brokers={self.broker_name: Decimal("7250.00")}
+                quantity=50.0,
+                price=145.0,
+                unit_cost=120.00,
+                cost_basis=6000.00,
+                current_value=7250.00,
+                day_change_percent=-0.008,
+                day_change_dollars=-58.40,
+                unrealized_gain_loss=1250.00,
+                unrealized_gain_loss_percent=0.2083,
+                portfolio_percentage=0.145,
+                brokers={self.broker_name: 7250.00}
             ),
             Holding(
                 symbol="TSLA",
                 description="Tesla, Inc.",
-                quantity=Decimal("25"),
-                unit_cost=Decimal("200.00"),
-                cost_basis=Decimal("5000.00"),
-                current_value=Decimal("6250.00"),
-                day_change_percent=Decimal("2.3"),
-                unrealized_gain_loss=Decimal("1250.00"),
-                unrealized_gain_loss_percent=Decimal("25.0"),
-                portfolio_percentage=Decimal("12.5"),
-                brokers={self.broker_name: Decimal("6250.00")}
+                quantity=25.0,
+                price=250.0,
+                unit_cost=200.00,
+                cost_basis=5000.00,
+                current_value=6250.00,
+                day_change_percent=0.023,
+                day_change_dollars=140.63,
+                unrealized_gain_loss=1250.00,
+                unrealized_gain_loss_percent=0.25,
+                portfolio_percentage=0.125,
+                brokers={self.broker_name: 6250.00}
             )
         ]
         

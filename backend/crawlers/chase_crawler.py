@@ -1,5 +1,4 @@
 from typing import List, Dict, Any, Optional
-from decimal import Decimal
 import asyncio
 import re
 from bs4 import BeautifulSoup
@@ -466,14 +465,14 @@ class ChaseCrawler(BaseCrawler):
                 symbol=symbol,
                 description=description,
                 quantity=cash_amount,  # Cash quantity equals the dollar amount
-                price=Decimal('1.00'),  # Cash price is always $1
+                price=1.00,  # Cash price is always $1
                 cost_basis=cash_amount,  # Cost basis equals current value for cash
-                unit_cost=Decimal('1.00'),  # Unit cost is always $1 for cash
+                unit_cost=1.00,  # Unit cost is always $1 for cash
                 current_value=cash_amount,
-                day_change_percent=Decimal('0.00'),  # Cash doesn't have daily changes
-                day_change_dollars=Decimal('0.00'),  # Cash doesn't have daily changes
-                unrealized_gain_loss=Decimal('0.00'),  # Cash has no unrealized gain/loss
-                unrealized_gain_loss_percent=Decimal('0.00'),  # Cash has no unrealized gain/loss
+                day_change_percent=0.00,  # Cash doesn't have daily changes
+                day_change_dollars=0.00,  # Cash doesn't have daily changes
+                unrealized_gain_loss=0.00,  # Cash has no unrealized gain/loss
+                unrealized_gain_loss_percent=0.00,  # Cash has no unrealized gain/loss
                 brokers={self.broker_name: cash_amount}
             )
             
@@ -484,7 +483,7 @@ class ChaseCrawler(BaseCrawler):
             self.log.error(f"Error parsing cash row: {e}")
             return None
     
-    def _clean_decimal_text(self, value_str: str) -> Decimal:
+    def _clean_decimal_text(self, value_str: str) -> float:
         """Clean text and extract decimal value, handling Chase-specific formatting"""
         if not value_str:
             raise ValueError("Value string cannot be empty")
@@ -507,14 +506,14 @@ class ChaseCrawler(BaseCrawler):
         if number_match:
             number_str = number_match.group()
             try:
-                result = Decimal(number_str)
+                result = float(number_str)
                 return -result if is_negative else result
             except Exception as e:
-                raise ValueError(f"Failed to convert '{number_str}' to Decimal: {e}")
+                raise ValueError(f"Failed to convert '{number_str}' to float: {e}")
         
         raise ValueError(f"No valid number found in text: '{value_str}'")
     
-    def _extract_first_price(self, price_text: str) -> Decimal:
+    def _extract_first_price(self, price_text: str) -> float:
         """Extract the first price from complex text like '121.61Loss of -0.51-0.51Loss of -0.42%-0.42%'"""
         if not price_text:
             raise ValueError("Price text cannot be empty")
@@ -523,15 +522,15 @@ class ChaseCrawler(BaseCrawler):
         number_match = re.match(r'^(\d+\.?\d*)', price_text.strip())
         if number_match:
             try:
-                return Decimal(number_match.group(1))
+                return float(number_match.group(1))
             except Exception as e:
-                raise ValueError(f"Failed to convert price '{number_match.group(1)}' to Decimal: {e}")
+                raise ValueError(f"Failed to convert price '{number_match.group(1)}' to float: {e}")
         
         raise ValueError(f"No valid price found at start of text: '{price_text}'")
     
     def sanity_check(self, soup: BeautifulSoup, holdings: List[Holding]) -> None:
         """Compare reported totals on the page with parsed holdings totals."""
-        TOTAL_CHECK_TOLERANCE = Decimal('0.01')
+        TOTAL_CHECK_TOLERANCE = 0.01
         total_row_data = self._parse_total_row(soup)
 
         reported_total_value = total_row_data['current_value']
@@ -559,7 +558,7 @@ class ChaseCrawler(BaseCrawler):
             reported_total_value,
         )
 
-    def _parse_total_row(self, soup: BeautifulSoup) -> Optional[Dict[str, Decimal]]:
+    def _parse_total_row(self, soup: BeautifulSoup) -> Optional[Dict[str, float]]:
         """Parse the totals row from the Chase portfolio table."""
         try:
             totals_row = soup.find('tr', {'data-testid': 'position-totals-row'})
@@ -585,7 +584,7 @@ class ChaseCrawler(BaseCrawler):
         except Exception as e:
             self.log.fatal(f"Error parsing totals row: {e}")
 
-    def _clean_percentage_text(self, value_str: str) -> Decimal:
+    def _clean_percentage_text(self, value_str: str) -> float:
         """Clean percentage text and convert to Decimal (as decimal, not percentage)"""
         if not value_str:
             raise ValueError("Percentage string cannot be empty")
@@ -612,9 +611,9 @@ class ChaseCrawler(BaseCrawler):
         if number_match:
             number_str = number_match.group()
             try:
-                result = Decimal(number_str) / 100  # Convert percentage to decimal
+                result = float(number_str) / 100  # Convert percentage to decimal
                 return -result if is_negative else result
             except Exception as e:
-                raise ValueError(f"Failed to convert percentage '{number_str}' to Decimal: {e}")
+                raise ValueError(f"Failed to convert percentage '{number_str}' to float: {e}")
         
         raise ValueError(f"No valid percentage found in text: '{value_str}'")

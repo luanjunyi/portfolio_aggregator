@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional
-from decimal import Decimal
 from datetime import datetime
 
 
@@ -8,26 +7,26 @@ class Holding(BaseModel):
     """Represents a single holding in a portfolio"""
     symbol: str
     description: str
-    quantity: Decimal
-    price: Decimal
-    unit_cost: Decimal
-    cost_basis: Decimal
-    current_value: Decimal
-    day_change_percent: Decimal
-    day_change_dollars: Decimal
-    unrealized_gain_loss: Decimal
-    unrealized_gain_loss_percent: Decimal
-    portfolio_percentage: Optional[Decimal] = None
-    brokers: Dict[str, Decimal] = Field(default_factory=dict)
+    quantity: float
+    price: float
+    unit_cost: float
+    cost_basis: float
+    current_value: float
+    day_change_percent: float
+    day_change_dollars: float
+    unrealized_gain_loss: float
+    unrealized_gain_loss_percent: float
+    portfolio_percentage: Optional[float] = None
+    brokers: Dict[str, float] = Field(default_factory=dict)
 
 
 class Portfolio(BaseModel):
     """Aggregated portfolio data from all brokers"""
     holdings: List[Holding]
-    total_value: Decimal
-    total_cost_basis: Decimal
-    total_unrealized_gain_loss: Decimal
-    total_unrealized_gain_loss_percent: Decimal
+    total_value: float
+    total_cost_basis: float
+    total_unrealized_gain_loss: float
+    total_unrealized_gain_loss_percent: float
     last_updated: datetime
     brokers_updated: List[str]  # Which brokers were successfully scraped
 

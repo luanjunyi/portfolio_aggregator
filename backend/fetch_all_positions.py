@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from decimal import Decimal
 from datetime import datetime
 from typing import Dict, Iterable, List, Sequence, Tuple, Type
 
@@ -30,16 +29,16 @@ BROKER_CRAWLERS: Sequence[CrawlerType] = (
 )
 
 
-def _decimal_sum(values: Iterable[Decimal]) -> Decimal:
-    return sum(values, Decimal("0"))
+def _float_sum(values: Iterable[float]) -> float:
+    return sum(values, 0.0)
 
 
-def _merge_broker_maps(holdings: Iterable[Holding]) -> Dict[str, Decimal]:
-    merged: Dict[str, Decimal] = {}
+def _merge_broker_maps(holdings: Iterable[Holding]) -> Dict[str, float]:
+    merged: Dict[str, float] = {}
     for holding in holdings:
         broker_map = holding.brokers or {}
         for broker_name, value in broker_map.items():
-            merged[broker_name] = merged.get(broker_name, Decimal("0")) + value
+            merged[broker_name] = merged.get(broker_name, 0.0) + value
     return merged
 
 
@@ -49,24 +48,24 @@ def _combine_symbol_group(symbol: str, holdings: Sequence[Holding]) -> Holding:
 
     base = holdings[0]
 
-    total_quantity = _decimal_sum(h.quantity for h in holdings)
-    total_cost_basis = _decimal_sum(h.cost_basis for h in holdings)
-    total_current_value = _decimal_sum(h.current_value for h in holdings)
-    total_day_change_dollars = _decimal_sum(h.day_change_dollars for h in holdings)
-    total_unrealized_gain_loss = _decimal_sum(h.unrealized_gain_loss for h in holdings)
+    total_quantity = _float_sum(h.quantity for h in holdings)
+    total_cost_basis = _float_sum(h.cost_basis for h in holdings)
+    total_current_value = _float_sum(h.current_value for h in holdings)
+    total_day_change_dollars = _float_sum(h.day_change_dollars for h in holdings)
+    total_unrealized_gain_loss = _float_sum(h.unrealized_gain_loss for h in holdings)
 
-    weighted_price = Decimal("0")
-    weighted_unit_cost = Decimal("0")
+    weighted_price = 0.0
+    weighted_unit_cost = 0.0
     if total_quantity != 0:
         weighted_price = total_current_value / total_quantity
         weighted_unit_cost = total_cost_basis / total_quantity
 
-    day_change_percent = Decimal("0")
+    day_change_percent = 0.0
     prior_value = total_current_value - total_day_change_dollars
     if prior_value != 0:
         day_change_percent = total_day_change_dollars / prior_value
 
-    unrealized_gain_loss_percent = Decimal("0")
+    unrealized_gain_loss_percent = 0.0
     if total_cost_basis != 0:
         unrealized_gain_loss_percent = total_unrealized_gain_loss / total_cost_basis
 
@@ -104,7 +103,7 @@ def _combine_successful_holdings(results: Sequence[CrawlerResult]) -> List[Holdi
 
 
 def _assign_portfolio_percentages(holdings: List[Holding]) -> List[Holding]:
-    total_value = _decimal_sum(h.current_value for h in holdings)
+    total_value = _float_sum(h.current_value for h in holdings)
     if total_value == 0:
         return holdings
 
@@ -139,11 +138,11 @@ async def fetch_all_positions() -> Portfolio:
     combined_holdings = _combine_successful_holdings(results)
     holdings_with_percentages = _assign_portfolio_percentages(combined_holdings)
 
-    total_value = _decimal_sum(h.current_value for h in holdings_with_percentages)
-    total_cost_basis = _decimal_sum(h.cost_basis for h in holdings_with_percentages)
-    total_unrealized = _decimal_sum(h.unrealized_gain_loss for h in holdings_with_percentages)
+    total_value = _float_sum(h.current_value for h in holdings_with_percentages)
+    total_cost_basis = _float_sum(h.cost_basis for h in holdings_with_percentages)
+    total_unrealized = _float_sum(h.unrealized_gain_loss for h in holdings_with_percentages)
 
-    total_unrealized_percent = Decimal("0")
+    total_unrealized_percent = 0.0
     if total_cost_basis != 0:
         total_unrealized_percent = total_unrealized / total_cost_basis
 
@@ -188,7 +187,7 @@ async def main() -> None:
     print(
         "  Unrealized %: "
         + (
-            f"{(portfolio.total_unrealized_gain_loss_percent * Decimal('100')):.2f}%"
+            f"{(portfolio.total_unrealized_gain_loss_percent * 100):.2f}%"
             if portfolio.total_unrealized_gain_loss_percent is not None
             else "N/A"
         )
