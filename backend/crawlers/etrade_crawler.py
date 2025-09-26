@@ -113,7 +113,6 @@ class EtradeCrawler(BaseCrawler):
 
             if "/portfolios/positions" in self.page.url.lower():
                 self.log.info("Login successful - reached positions page")
-                await self.save_session()
                 return True
 
             self.log.fatal(f"Login failed - at URL: {self.page.url}")

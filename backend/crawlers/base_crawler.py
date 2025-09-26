@@ -361,19 +361,10 @@ class BaseCrawler(ABC):
             
             self.log.info(f"Successfully scraped {len(holdings)} holdings")
             
-            # Convert holdings to dict and back to ensure compatibility
-            holdings_data = []
-            for holding in holdings:
-                if hasattr(holding, 'model_dump'):
-                    holdings_data.append(holding.model_dump())
-                else:
-                    # Fallback for older pydantic versions
-                    holdings_data.append(holding.dict())
-            
             return CrawlerResult(
                 broker=self.broker_name,
                 success=True,
-                holdings=holdings_data  # Pass as dicts, Pydantic will convert them
+                holdings=holdings  # Pass as dicts, Pydantic will convert them
             )
             
         except Exception as e:
