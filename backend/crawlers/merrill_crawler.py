@@ -162,7 +162,7 @@ class MerrillCrawler(BaseCrawler):
                     if cash_holding:
                         holdings.append(cash_holding)
                         table_holdings.append(cash_holding)
-                        self.log.info("Found and parsed cash position, this should be the last")
+                        self.log.info("Found and parsed cash position, this should be the last in current account table")
                         break
                 except Exception as e:
                     self.log.debug(f"Row is not a cash position: {e}")
@@ -211,6 +211,9 @@ class MerrillCrawler(BaseCrawler):
 
             price = self._clean_decimal_text(cells[4].get_text(" ", strip=True))
             quantity = self._clean_decimal_text(cells[5].get_text(strip=True))
+            if quantity == 0:
+                self.log.warning(f"Found position with zero quantity: {symbol}, maybe pending clearance.")
+                return None
             unit_cost = self._clean_decimal_text(cells[6].get_text(strip=True))
             cost_basis = self._clean_decimal_text(cells[7].get_text(strip=True))
             current_value = self._clean_decimal_text(cells[8].get_text(strip=True))

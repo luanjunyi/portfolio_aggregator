@@ -374,7 +374,11 @@ class ChaseCrawler(BaseCrawler):
             
             # Extract day's gain/loss from fifth cell (Day's gain/loss $)
             day_change_dollars_text = cells[4].get_text(strip=True)
-            day_change_dollars = self._clean_decimal_text(day_change_dollars_text)
+            try:
+                day_change_dollars = self._clean_decimal_text(day_change_dollars_text)
+            except ValueError:
+                # On non-trading days, Chase show change as empty cell
+                day_change_dollars = 0.0
             
             # Calculate day change percent from day_change_dollars / current_value
             if current_value != 0:

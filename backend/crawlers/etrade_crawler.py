@@ -35,8 +35,8 @@ class EtradeCrawler(BaseCrawler):
         await self.page.goto(self.portfolio_url, wait_until='networkidle')
         await self.page.wait_for_load_state('networkidle', timeout=15000)
 
-        html = await self.page.content()
-        holdings = await self.parse_portfolio_html(html)
+
+        holdings = await self.parse_portfolio_html()
 
         self.log.info(f"Found {len(holdings)} total holdings")
         return holdings
@@ -121,7 +121,7 @@ class EtradeCrawler(BaseCrawler):
             self.log.fatal(f"Login failed: {e}")
             raise
 
-    async def parse_portfolio_html(self, html: str) -> List[Holding]:
+    async def parse_portfolio_html(self) -> List[Holding]:
         """Parse the E*TRADE positions page.
 
         The page is rendered with React, so we primarily rely on the live DOM. If parsing
@@ -315,7 +315,7 @@ class EtradeCrawler(BaseCrawler):
     const cashWrapper = symbolCell.querySelector('.FooterCellRenderer---cash-and-transfer-wrapper---ISxOD');
     if (cashWrapper) {
       // This is definitely the cash row - extract the cash value
-      const cashValue = extractText(row, 12);
+      const cashValue = extractText(row, 11);
       if (cashValue) {
         results.push({
           symbol: 'Cash',
@@ -343,17 +343,15 @@ class EtradeCrawler(BaseCrawler):
     results.push({
       symbol,
       description: rawDescription.trim(),
-      day_gain_dollars: extractText(row, 3),
-      last_price: extractText(row, 4),
-      cost_per_share: extractText(row, 5),
-      day_gain_dollars_internal: extractText(row, 6),
-      day_change_percent: extractText(row, 7),
-      quantity: extractText(row, 8),
-      price_paid: extractText(row, 9),
-      total_gain: extractText(row, 10),
-      total_gain_percent: extractText(row, 11),
-      value: extractText(row, 12),
-      total_cost: extractText(row, 13)
+      last_price: extractText(row, 3),
+      day_change_dollars: extractText(row, 4),
+      day_change_percent: extractText(row, 5),
+      quantity: extractText(row, 6),
+      cost_per_share: extractText(row, 7),
+      day_gain_dollars: extractText(row, 8),
+      total_gain: extractText(row, 9),
+      total_gain_percent: extractText(row, 10),
+      value: extractText(row, 11)
     });
   }
 
@@ -367,10 +365,6 @@ class EtradeCrawler(BaseCrawler):
             for entry in result:
                 if isinstance(entry, dict):
                     rows.append(entry)
-
-        for row in rows:
-            if not row.get("day_gain_dollars"):
-                row["day_gain_dollars"] = row.get("day_gain_dollars_internal", "")
 
         return rows
 
@@ -453,22 +447,26 @@ class EtradeCrawler(BaseCrawler):
     return (cell.innerText || '').trim();
   };
 
-  // Find the totals row by looking for the "Total" text
+  // Find the totals row by looking for the "Total" text (not "Cash Total")
   const rows = Array.from(grid.querySelectorAll('div[role="row"][aria-rowindex]'));
   for (const row of rows) {
     const symbolCell = row.querySelector('[role="rowheader"][aria-colindex="1"]');
     if (!symbolCell) continue;
     
     const totalWrapper = symbolCell.querySelector('.FooterCellRenderer---cash-and-total---hAWG4');
-    if (totalWrapper && symbolCell.textContent.toLowerCase().includes('total')) {
-      // Found the totals row
-      return {
-        day_change: extractText(row, 3),      // Column 2 (index 2): Day's gain/loss
-        market_value: extractText(row, 9),    // Column 8 (index 8): Market value
-        total_gain: extractText(row, 10),     // Column 9 (index 9): Total gain/loss
-        total_gain_percent: extractText(row, 11), // Column 10 (index 10): Total gain/loss %
-        total_value: extractText(row, 12)     // Column 11 (index 11): Total value
-      };
+    if (totalWrapper) {
+      const text = symbolCell.textContent.trim().toLowerCase();
+      // Match "Total" but not "Cash Total"
+      if (text === 'total' || (text.includes('total') && !text.includes('cash'))) {
+        // Found the totals row
+        return {
+          day_change: extractText(row, 8),      // Column 8: Day's Gain $
+          market_value: extractText(row, 7),    // Column 7: Total Cost (market value)
+          total_gain: extractText(row, 9),      // Column 9: Total Gain $
+          total_gain_percent: extractText(row, 10), // Column 10: Total Gain %
+          total_value: extractText(row, 11)     // Column 11: Value $
+        };
+      }
     }
   }
   
