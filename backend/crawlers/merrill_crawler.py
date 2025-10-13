@@ -30,10 +30,12 @@ class MerrillCrawler(BaseCrawler):
     async def scrape_portfolio(self) -> List[Holding]:
         """Scrape holdings from Merrill Edge"""
         self.log.info("Starting Merrill holdings scrape...")      
-        self.log.info("Navigating to portfolio page...")
+        
         
         # Navigate to the portfolio page that shows all holdings
-        await self.page.goto(self.portfolio_url, wait_until='networkidle')
+        if self.page.url != self.portfolio_url:
+            self.log.info("Navigating to portfolio page...")
+            await self.page.goto(self.portfolio_url, wait_until='networkidle')
         
         # Wait for the portfolio table to load (it has a dynamic ID starting with CustomGrid_)
         self.log.info("Waiting for portfolio table to load...")
@@ -147,6 +149,7 @@ class MerrillCrawler(BaseCrawler):
                 continue
 
             table_holdings: List[Holding] = []
+            pending_activity = 0.0
             rows = tbody.find_all('tr')
             for row in rows:
                 first_cell = row.find('td')
@@ -156,17 +159,28 @@ class MerrillCrawler(BaseCrawler):
                         self.log.info("Reached balances section, skipping this row")
                         continue
                 
+                # Check if this is a pending activity row
+                try:
+                    pending_value = self._parse_pending_activity_row(row)
+                    if pending_value is not None:
+                        pending_activity = pending_value
+                        self.log.info(f"Found pending activity: ${pending_activity}, this should be the last in current account table")
+                        break # This is always the last row
+                except Exception as e:
+                    self.log.debug(f"Row is not pending activity: {e}")
+                
                 # Check if this is a cash row (Money accounts)
                 try:
                     cash_holding = self._parse_cash_row(row)
                     if cash_holding:
                         holdings.append(cash_holding)
                         table_holdings.append(cash_holding)
-                        self.log.info("Found and parsed cash position, this should be the last in current account table")
-                        break
+                        self.log.info("Found and parsed cash position")
+                        continue  # Not necessarily the last row, the last row could be pending activity
                 except Exception as e:
                     self.log.debug(f"Row is not a cash position: {e}")
                 
+                # This must be after parsing cash row and pending activity row
                 try:
                     holding = self._parse_position_row(row)
                     if holding:
@@ -174,6 +188,18 @@ class MerrillCrawler(BaseCrawler):
                         table_holdings.append(holding)
                 except Exception as e:
                     self.log.error(f"Error parsing row: {e}")
+            
+            # After loop: adjust cash holding if pending activity was found
+            if pending_activity != 0.0:
+                for holding in table_holdings:
+                    if holding.symbol == "USD_CASH":
+                        self.log.info(f"Adjusting cash balance: ${holding.current_value} + ${pending_activity} = ${holding.current_value + pending_activity}")
+                        holding.quantity += pending_activity
+                        holding.cost_basis += pending_activity
+                        holding.current_value += pending_activity
+                        holding.brokers[self.broker_name] = holding.current_value
+                        break
+            
             self.log.debug(f"found {len(table_holdings)} holdings from table")
             self.sanity_check(table, table_holdings)
 
@@ -198,6 +224,9 @@ class MerrillCrawler(BaseCrawler):
                 symbol = symbol_link.get_text(" ", strip=True).split()[0]
             else:
                 symbol = symbol_cell.get_text(strip=True)
+            if symbol in ['Cash balance',]:
+                self.log.warning(f"skipping [{symbol}] row")
+                return None
 
             if not symbol:
                 raise ValueError("Missing symbol")
@@ -246,7 +275,33 @@ class MerrillCrawler(BaseCrawler):
             return holding
 
         except Exception as e:
-            self.log.error(f"Error parsing position row: {e}")
+            self.log.error(f"Error parsing position row: {e}, symbol: {symbol}")
+            return None
+
+    def _parse_pending_activity_row(self, row) -> float:
+        """Parse a pending activity row and return the pending amount"""
+        cells = row.find_all('td')
+        if len(cells) < 9:
+            return None
+        
+        try:
+            # Check if this is a pending activity row
+            first_cell = cells[0]
+            text = first_cell.get_text(strip=True).lower()
+            if 'pending activity' not in text:
+                return None
+            
+            # Extract the pending activity amount from the 9th cell (index 8)
+            # This is the same column where current_value appears for regular positions
+            value_text = cells[8].get_text(strip=True)
+            if not value_text or value_text == '--':
+                return 0.0
+            
+            pending_amount = self._clean_decimal_text(value_text)
+            return pending_amount
+            
+        except Exception as e:
+            self.log.debug(f"Error parsing pending activity row: {e}")
             return None
 
     def _parse_cash_row(self, row) -> Holding:
@@ -264,7 +319,7 @@ class MerrillCrawler(BaseCrawler):
             
             # Extract description from the third cell (index 2)
             description_cell = cells[2]
-            description = description_cell.get_text(strip=True) or "Cash & sweep funds"
+            description = description_cell.get_text(strip=True) 
             
             # Extract quantity from the sixth cell (index 5)
             quantity_text = cells[5].get_text(strip=True)
@@ -282,7 +337,7 @@ class MerrillCrawler(BaseCrawler):
             if abs(quantity - current_value) > 0.01:  # Allow small rounding differences
                 return None
             
-            # Create cash holding
+            # Create cash holding (pending activity will be adjusted later)
             holding = Holding(
                 symbol="USD_CASH",
                 description=description,
