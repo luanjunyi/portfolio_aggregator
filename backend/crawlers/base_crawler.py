@@ -60,8 +60,7 @@ class BaseCrawler(ABC):
             await self._connect_over_cdp(cdp_url)
             return
         except Exception as exc:
-            self.log.fatal(f"Failed to launch automation Chrome: {exc}")
-            raise RuntimeError(f"Failed to launch automation Chrome: {exc}")
+            raise RuntimeError(f"Failed to launch automation Chrome: {exc}") from exc
         
         # Set up request/response logging (disabled for cleaner output)
         # self.page.on('request', self._log_request)
@@ -128,8 +127,7 @@ class BaseCrawler(ABC):
 
         chrome_executable = '/Applications/Google Chrome Beta.app/Contents/MacOS/Google Chrome Beta'
         if not os.path.exists(chrome_executable):
-            self.log.fatal(f"Chrome executable not found at {chrome_executable}")
-            raise RuntimeError("Unable to locate Chrome executable for automation. Set CHROME_AUTOMATION_EXECUTABLE to the Chrome Beta path.")
+            raise RuntimeError(f"Chrome executable not found at {chrome_executable}. Unable to locate Chrome executable for automation. Set CHROME_AUTOMATION_EXECUTABLE to the Chrome Beta path.")
 
         user_data_dir = os.path.expanduser('~/Library/Application Support/Chrome-Automation')
         os.makedirs(user_data_dir, exist_ok=True)
@@ -207,14 +205,12 @@ class BaseCrawler(ABC):
 
         while True:
             if self.chrome_process and self.chrome_process.returncode is not None:
-                self.log.fatal(f"Chrome process exited early with code {self.chrome_process.returncode}")
                 raise RuntimeError(f"Chrome process exited early with code {self.chrome_process.returncode}")
 
             if await asyncio.to_thread(self._probe_cdp_endpoint, probe_url):
                 return
 
             if asyncio.get_running_loop().time() > deadline:
-                self.log.fatal(f"Timed out waiting for Chrome debugging endpoint at {cdp_url}")
                 raise RuntimeError(f"Timed out waiting for Chrome debugging endpoint at {cdp_url}")
 
             await asyncio.sleep(0.2)
@@ -368,5 +364,4 @@ class BaseCrawler(ABC):
             )
             
         except Exception as e:
-            self.log.fatal(f"Crawl failed with error: {e}")
             raise

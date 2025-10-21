@@ -76,7 +76,6 @@ class MerrillCrawler(BaseCrawler):
         # Get stored credentials
         credentials = self.get_credentials()
         if not credentials:
-            self.log.fatal("No credentials found. Please add credentials first.")
             raise RuntimeError("No credentials found")
         
         username = credentials['username']
@@ -91,24 +90,21 @@ class MerrillCrawler(BaseCrawler):
             await self.page.fill('#oid', username)
             self.log.debug("Filled username field")
         except Exception as e:
-            self.log.fatal(f"Username field #oid not found: {e}")
-            raise RuntimeError(f"Username field #oid not found: {e}")
+            raise RuntimeError(f"Username field #oid not found: {e}") from e
         
         # Fill password field - crash if not found  
         try:
             await self.page.fill('#pass', password)
             self.log.debug("Filled password field")
         except Exception as e:
-            self.log.fatal(f"Password field #pass not found: {e}")
-            raise RuntimeError(f"Password field #pass not found: {e}")
+            raise RuntimeError(f"Password field #pass not found: {e}") from e
         
         # Click login button - crash if not found
         try:
             await self.page.click('#secure-signin-submit', delay=random.randint(100, 200))
             self.log.debug("Clicked login button")
         except Exception as e:
-            self.log.fatal(f"Login button #secure-signin-submit not found: {e}")
-            raise RuntimeError(f"Login button #secure-signin-submit not found: {e}")
+            raise RuntimeError(f"Login button #secure-signin-submit not found: {e}") from e
 
         # Wait for positions page or any portfolios page
         try:
@@ -134,12 +130,11 @@ class MerrillCrawler(BaseCrawler):
         tables = soup.find_all('table', id=re.compile(r'^CustomGrid_'))
 
         if not tables:
-            self.log.fatal("Merrill holdings tables not found")
             debug_file = "merrill_debug_all_holdings.html"
             with open(debug_file, 'w', encoding='utf-8') as f:
                 f.write(html)
             self.log.info(f"Saved HTML to {debug_file} for analysis")
-            raise RuntimeError("Holdings tables not found")
+            raise RuntimeError("Merrill holdings tables not found")
 
         self.log.info(f"Found {len(tables)} holdings table(s)")
 
@@ -378,17 +373,15 @@ class MerrillCrawler(BaseCrawler):
         unrealized_diff = computed_unrealized_gain - reported_unrealized_gain
 
         if abs(value_diff) / reported_total_value > TOTAL_CHECK_TOLERANCE:
-            self.log.fatal(
+            raise RuntimeError(
                 f"Total value mismatch: holdings {computed_total_value} vs reported {reported_total_value}"
             )
-            return False
 
         if abs(unrealized_diff) / reported_unrealized_gain > TOTAL_CHECK_TOLERANCE:
-            self.log.fatal(
+            raise RuntimeError(
                 "Unrealized gain mismatch: holdings "
                 f"{computed_unrealized_gain} vs reported {reported_unrealized_gain}"
             )
-            return False
 
 
         return True

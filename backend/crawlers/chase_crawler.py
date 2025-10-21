@@ -62,12 +62,11 @@ class ChaseCrawler(BaseCrawler):
                 self.log.info("Already logged in with stored session!")
                 return True
         except Exception as e:
-            self.log.fatal(f"Failed to check login session: {e}")
+            raise RuntimeError(f"Failed to check login session: {e}") from e
         
         # Get stored credentials
         credentials = self.get_credentials()
         if not credentials:
-            self.log.fatal("No credentials found. Please add credentials first.")
             raise RuntimeError("No credentials found")
         
         username = credentials['username']
@@ -88,19 +87,16 @@ class ChaseCrawler(BaseCrawler):
             # Wait for the iframe to appear
             iframe_selector = 'iframe#logonbox'
             if not await self.wait_for_element(iframe_selector, timeout=15000):
-                self.log.fatal("Login iframe not found")
                 raise RuntimeError("Login iframe not found")
             
             # Get the iframe element and switch to its context
             iframe_element = await self.page.query_selector(iframe_selector)
             if not iframe_element:
-                self.log.fatal("Could not get iframe element")
                 raise RuntimeError("Could not get iframe element")
             
             # Get the iframe's content frame
             iframe_frame = await iframe_element.content_frame()
             if not iframe_frame:
-                self.log.fatal("Could not get iframe content frame")
                 raise RuntimeError("Could not get iframe content frame")
             
             # Wait for login form elements inside the iframe
@@ -115,7 +111,6 @@ class ChaseCrawler(BaseCrawler):
                 await asyncio.sleep(2)
             
             if not form_loaded:
-                self.log.fatal("Login form never loaded in iframe")
                 raise RuntimeError("Login form never loaded in iframe")
             
             # Wait for login form to load - Chase uses specific selectors
@@ -150,7 +145,6 @@ class ChaseCrawler(BaseCrawler):
                     continue
             
             if not username_found:
-                self.log.fatal("Username field not found in iframe")
                 raise RuntimeError("Username field not found in iframe")
             
             # Wait for password field in iframe
@@ -167,7 +161,6 @@ class ChaseCrawler(BaseCrawler):
                     continue
             
             if not password_found:
-                self.log.fatal("Password field not found in iframe")
                 raise RuntimeError("Password field not found in iframe")
             
             # Click login button in iframe
@@ -194,7 +187,6 @@ class ChaseCrawler(BaseCrawler):
                     continue
             
             if not login_button_found:
-                self.log.fatal("Could not find login button in iframe")
                 raise RuntimeError("Could not find login button in iframe")
             
             # Check if we're on the dashboard or need 2FA
@@ -219,11 +211,10 @@ class ChaseCrawler(BaseCrawler):
                 await self.save_session()
                 return True
             else:
-                self.log.fatal(f"Login failed - reached URL: {self.page.url}, expected */dashboard/overview")
+                raise RuntimeError(f"Login failed - reached URL: {self.page.url}, expected */dashboard/overview")
 
                 
         except Exception as e:
-            self.log.fatal(f"Login failed: {e}")
             raise
     
     async def handle_2fa_if_needed(self) -> bool:
@@ -294,20 +285,18 @@ class ChaseCrawler(BaseCrawler):
         portfolio_table = soup.find('table', {'id': 'ssv-table', 'data-testid': 'ssv-table'})
         
         if not portfolio_table:
-            self.log.fatal("Chase portfolio table not found")
             # Save HTML for debugging
             debug_file = f"chase_debug_all_holdings.html"
             with open(debug_file, 'w', encoding='utf-8') as f:
                 f.write(html)
             self.log.info(f"Saved HTML to {debug_file} for analysis")
-            raise RuntimeError("Portfolio table not found")
+            raise RuntimeError("Chase portfolio table not found")
         
         self.log.info("Found Chase portfolio table")
         
         # Find all position rows (exclude cash and totals rows)
         tbody = portfolio_table.find('tbody')
         if not tbody:
-            self.log.fatal("No tbody found in portfolio table")
             raise RuntimeError("No tbody found in portfolio table")
         
         position_rows = tbody.find_all('tr', {'data-testid': lambda x: x and x.startswith('position-')})
@@ -540,14 +529,14 @@ class ChaseCrawler(BaseCrawler):
 
         value_diff = abs(computed_total_value - reported_total_value)
         if value_diff / computed_total_value > TOTAL_CHECK_TOLERANCE:
-            self.log.fatal(
+            raise RuntimeError(
                 f"Total value mismatch: holdings {computed_total_value:.2f} vs reported {reported_total_value:.2f}"
             )
 
         unrealized_diff = abs(computed_unrealized_gain - reported_unrealized_gain)
         # Use a slightly larger tolerance for unrealized gain due to potential rounding differences
         if unrealized_diff / computed_unrealized_gain > TOTAL_CHECK_TOLERANCE:
-            self.log.fatal(
+            raise RuntimeError(
                 f"Unrealized gain mismatch: holdings {computed_unrealized_gain:.2f} vs reported {reported_unrealized_gain:.2f}. This might be due to rounding."
             )
 
@@ -562,11 +551,11 @@ class ChaseCrawler(BaseCrawler):
         try:
             totals_row = soup.find('tr', {'data-testid': 'position-totals-row'})
             if not totals_row:
-                self.log.fatal("Could not find totals row in Chase portfolio.")
+                raise RuntimeError("Could not find totals row in Chase portfolio")
 
             cells = totals_row.find_all('td')
             if len(cells) < 7:
-                self.log.fatal("Could not find totals row in Chase portfolio.")
+                raise RuntimeError("Could not find totals row in Chase portfolio")
 
             # Total Market Value is in the 4th cell (index 3)
             total_value_text = cells[3].get_text(strip=True)
@@ -581,7 +570,7 @@ class ChaseCrawler(BaseCrawler):
                 'unrealized_gain_loss': reported_unrealized_gain,
             }
         except Exception as e:
-            self.log.fatal(f"Error parsing totals row: {e}")
+            raise RuntimeError(f"Error parsing totals row: {e}") from e
 
     def _clean_percentage_text(self, value_str: str) -> float:
         """Clean percentage text and convert to Decimal (as decimal, not percentage)"""

@@ -28,10 +28,9 @@ async def run_chase_crawler():
     creds = db.get_credentials("chase")
     
     if not creds:
-        log.fatal("No Chase credentials found!")
         print("❌ No Chase credentials found!")
         print("Please run: python add_chase_credentials.py")
-        return False
+        raise RuntimeError("No Chase credentials found!")
     
     log.info(f"Found credentials for user: {creds['username']}")
     print(f"✅ Found credentials for user: {creds['username']}")

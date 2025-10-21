@@ -127,7 +127,7 @@ async def fetch_all_positions() -> Portfolio:
             result = await _run_crawler(crawler_cls)
             results.append(result)
         except Exception as exc:
-            log.fatal(f"Error running crawler {crawler_cls}: {exc}")
+            raise RuntimeError(f"Error running crawler {crawler_cls}: {exc}") from exc
             
     combined_holdings = _combine_successful_holdings(results)
     holdings_with_percentages = _assign_portfolio_percentages(combined_holdings)

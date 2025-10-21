@@ -59,7 +59,6 @@ class EtradeCrawler(BaseCrawler):
 
         credentials = self.get_credentials()
         if not credentials:
-            self.log.fatal("No credentials found. Please add credentials first.")
             raise RuntimeError("No credentials found")
 
         username = credentials['username']
@@ -73,52 +72,43 @@ class EtradeCrawler(BaseCrawler):
             login_button_selector = '#mfaLogonButton'
 
             if not await self.wait_for_element(username_selector, timeout=20000):
-                self.log.fatal(f"Username field not found: {username_selector}")
                 raise RuntimeError(f"Username field not found: {username_selector}")
             if not await self.wait_for_element(password_selector, timeout=20000):
-                self.log.fatal(f"Password field not found: {password_selector}")
                 raise RuntimeError(f"Password field not found: {password_selector}")
 
             try:
                 await self.page.fill(username_selector, username)
                 self.log.debug(f"Filled username in {username_selector}")
             except Exception as e:
-                self.log.fatal(f"Error filling username field: {e}")
-                raise
+                raise RuntimeError(f"Error filling username field: {e}") from e
 
             try:
                 await self.page.fill(password_selector, password)
                 self.log.debug(f"Filled password in {password_selector}")
             except Exception as e:
-                self.log.fatal(f"Error filling password field: {e}")
-                raise
+                raise RuntimeError(f"Error filling password field: {e}") from e
 
             if not await self.wait_for_element(login_button_selector, timeout=15000):
-                self.log.fatal(f"Login button not found: {login_button_selector}")
                 raise RuntimeError(f"Login button not found: {login_button_selector}")
 
             try:
                 await self.page.click(login_button_selector, delay=random.randint(100, 200))
                 self.log.debug(f"Clicked login button {login_button_selector}")
             except Exception as e:
-                self.log.fatal(f"Error clicking login button: {e}")
-                raise
+                raise RuntimeError(f"Error clicking login button: {e}") from e
 
             try:
                 self.log.info("Waiting for positions page to load...")
                 await self.page.wait_for_url("**/portfolios/positions*", timeout=5 * 60000)
             except Exception as e:
-                self.log.fatal(f"Error waiting for positions URL: {e}")
-                raise
+                raise RuntimeError(f"Error waiting for positions URL: {e}") from e
 
             if "/portfolios/positions" in self.page.url.lower():
                 self.log.info("Login successful - reached positions page")
                 return True
 
-            self.log.fatal(f"Login failed - at URL: {self.page.url}")
             raise RuntimeError(f"Login failed - unexpected URL: {self.page.url}")
         except Exception as e:
-            self.log.fatal(f"Login failed: {e}")
             raise
 
     async def parse_portfolio_html(self) -> List[Holding]:
@@ -404,8 +394,7 @@ class EtradeCrawler(BaseCrawler):
         
         total_row_data = await self._parse_total_row()
         if not total_row_data:
-            self.log.fatal("Could not find or parse totals row in E*TRADE portfolio.")
-            raise RuntimeError("Could not find totals row in E*TRADE portfolio")
+            raise RuntimeError("Could not find or parse totals row in E*TRADE portfolio")
 
         reported_total_value = total_row_data['total_value']
         reported_market_value = total_row_data['market_value']

@@ -26,7 +26,6 @@ class SandboxCrawler(BaseCrawler):
         # Check if we have credentials
         credentials = self.get_credentials()
         if not credentials:
-            self.log.fatal("No credentials found. Please store credentials first.")
             raise RuntimeError("No credentials found")
         
         self.log.info(f"Using credentials for user: {credentials['username']}")
