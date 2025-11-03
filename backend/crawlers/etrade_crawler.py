@@ -117,25 +117,8 @@ class EtradeCrawler(BaseCrawler):
         The page is rendered with React, so we primarily rely on the live DOM. If parsing
         fails we save debug artifacts to help refine the selectors.
         """
-        try:
-            return await self._parse_positions_from_dom()
-        except Exception as exc:
-            self.log.error(f"DOM parsing error: {exc}")
 
-        # Save debug artifacts for further analysis
-        try:
-            with open("etrade_dom_dump.html", "w", encoding="utf-8") as fh:
-                fh.write(await self.page.content())
-            app_html = await self.page.eval_on_selector('#application', 'el => el.outerHTML')
-            if app_html:
-                with open("etrade_application_dump.html", "w", encoding="utf-8") as fh:
-                    fh.write(app_html)
-            await self.page.screenshot(path="etrade_positions_page.png", full_page=True)
-            self.log.info("Saved debug artifacts (HTML and screenshot)")
-        except Exception as debug_exc:
-            self.log.error(f"Failed to capture debug artifacts: {debug_exc}")
-
-        return []
+        return await self._parse_positions_from_dom()
 
     async def _parse_positions_from_dom(self) -> List[Holding]:
         grid_selector = 'div[role="grid"][aria-label="Portfolios"]'

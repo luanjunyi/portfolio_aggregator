@@ -285,11 +285,6 @@ class ChaseCrawler(BaseCrawler):
         portfolio_table = soup.find('table', {'id': 'ssv-table', 'data-testid': 'ssv-table'})
         
         if not portfolio_table:
-            # Save HTML for debugging
-            debug_file = f"chase_debug_all_holdings.html"
-            with open(debug_file, 'w', encoding='utf-8') as f:
-                f.write(html)
-            self.log.info(f"Saved HTML to {debug_file} for analysis")
             raise RuntimeError("Chase portfolio table not found")
         
         self.log.info("Found Chase portfolio table")

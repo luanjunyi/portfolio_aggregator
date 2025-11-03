@@ -130,10 +130,6 @@ class MerrillCrawler(BaseCrawler):
         tables = soup.find_all('table', id=re.compile(r'^CustomGrid_'))
 
         if not tables:
-            debug_file = "merrill_debug_all_holdings.html"
-            with open(debug_file, 'w', encoding='utf-8') as f:
-                f.write(html)
-            self.log.info(f"Saved HTML to {debug_file} for analysis")
             raise RuntimeError("Merrill holdings tables not found")
 
         self.log.info(f"Found {len(tables)} holdings table(s)")
