@@ -198,11 +198,12 @@ class EtradeCrawler(BaseCrawler):
                 continue
 
             unit_cost = parse_decimal_optional(row, "cost_per_share", symbol)
-            cost_basis = parse_decimal_optional(row, "total_cost", symbol)
             day_change_dollars = parse_decimal_optional(row, "day_gain_dollars", symbol)
             day_change_percent = parse_percent_optional(row, "day_change_percent", symbol)
             unrealized_gain_loss = parse_decimal_optional(row, "total_gain", symbol)
             unrealized_gain_loss_percent = parse_percent_optional(row, "total_gain_percent", symbol)
+            # Total cost can't be displayed in the all positions view, so we need to calculate it
+            cost_basis = quantity * unit_cost
 
             holding_list.append(
                 Holding(
