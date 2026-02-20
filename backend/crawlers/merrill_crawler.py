@@ -324,10 +324,6 @@ class MerrillCrawler(BaseCrawler):
                 return None
             current_value = self._clean_decimal_text(value_text)
             
-            # Verify this is actually a cash position (quantity should equal current_value for cash)
-            if abs(quantity - current_value) > 0.01:  # Allow small rounding differences
-                return None
-            
             # Create cash holding (pending activity will be adjusted later)
             holding = Holding(
                 symbol="USD_CASH",
