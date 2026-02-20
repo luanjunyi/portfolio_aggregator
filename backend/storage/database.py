@@ -66,9 +66,106 @@ class DatabaseManager:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS portfolio_snapshots (
+                    date TEXT PRIMARY KEY,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    total_value REAL,
+                    total_cost_basis REAL,
+                    total_unrealized_gain_loss REAL,
+                    total_unrealized_gain_loss_percent REAL,
+                    day_change_dollars REAL,
+                    day_change_percent REAL
+                )
+            """)
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS holdings_snapshots (
+                    date TEXT,
+                    symbol TEXT,
+                    description TEXT,
+                    quantity REAL,
+                    price REAL,
+                    unit_cost REAL,
+                    cost_basis REAL,
+                    current_value REAL,
+                    day_change_percent REAL,
+                    day_change_dollars REAL,
+                    unrealized_gain_loss REAL,
+                    unrealized_gain_loss_percent REAL,
+                    portfolio_percentage REAL,
+                    brokers TEXT, -- JSON
+                    PRIMARY KEY (date, symbol),
+                    FOREIGN KEY(date) REFERENCES portfolio_snapshots(date)
+                )
+            """)
             
             conn.commit()
     
+    def save_portfolio_snapshot(self, portfolio: Any):
+        """Save a portfolio snapshot and its holdings to the database"""
+        # Note: portfolio type hint is Any to avoid circular imports, but expects models.portfolio.Portfolio
+        
+        # Format date as YYYY-mm-dd
+        snapshot_date = portfolio.last_updated.strftime('%Y-%m-%d')
+        
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            
+            # Insert or replace portfolio snapshot
+            cursor.execute("""
+                INSERT OR REPLACE INTO portfolio_snapshots (
+                    date, timestamp, total_value, total_cost_basis, 
+                    total_unrealized_gain_loss, total_unrealized_gain_loss_percent,
+                    day_change_dollars, day_change_percent
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                snapshot_date,
+                portfolio.last_updated,
+                portfolio.total_value,
+                portfolio.total_cost_basis,
+                portfolio.total_unrealized_gain_loss,
+                portfolio.total_unrealized_gain_loss_percent,
+                portfolio.day_change_dollars,
+                portfolio.day_change_percent
+            ))
+            
+            # Remove existing holdings for this date (in case of re-run)
+            cursor.execute("DELETE FROM holdings_snapshots WHERE date = ?", (snapshot_date,))
+            
+            # Insert holdings
+            holdings_data = []
+            for h in portfolio.holdings:
+                holdings_data.append((
+                    snapshot_date,
+                    h.symbol,
+                    h.description,
+                    h.quantity,
+                    h.price,
+                    h.unit_cost,
+                    h.cost_basis,
+                    h.current_value,
+                    h.day_change_percent,
+                    h.day_change_dollars,
+                    h.unrealized_gain_loss,
+                    h.unrealized_gain_loss_percent,
+                    h.portfolio_percentage,
+                    json.dumps(h.brokers)
+                ))
+            
+            cursor.executemany("""
+                INSERT INTO holdings_snapshots (
+                    date, symbol, description, quantity, price, unit_cost,
+                    cost_basis, current_value, day_change_percent, day_change_dollars,
+                    unrealized_gain_loss, unrealized_gain_loss_percent,
+                    portfolio_percentage, brokers
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, holdings_data)
+            
+            conn.commit()
+            return snapshot_date
+
     def store_credentials(self, broker: str, username: str, password: str):
         """Store broker credentials"""
         with sqlite3.connect(self.db_path) as conn:
