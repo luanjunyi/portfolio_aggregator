@@ -1,0 +1,1358 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - heading "Portfolio Dashboard" [level=1] [ref=e4]
+      - generic [ref=e5]: 2026-05-15
+    - generic [ref=e6]:
+      - generic [ref=e9]:
+        - generic [ref=e10]: Total Value
+        - generic [ref=e11]: $7,363,700.03
+      - generic [ref=e14]:
+        - generic [ref=e15]: Day Change
+        - generic [ref=e16]: $-40,123.52
+        - generic [ref=e17]: "-0.54%"
+      - generic [ref=e20]:
+        - generic [ref=e21]: Unrealized G/L
+        - generic [ref=e22]: $3,259,574.23
+        - generic [ref=e23]: 79.43%
+      - generic [ref=e26]:
+        - generic [ref=e27]: Cost Basis
+        - generic [ref=e28]: $4,103,689.31
+    - generic [ref=e34]:
+      - img:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic: Feb 222026
+              - generic:
+                - generic: Mar 8
+              - generic:
+                - generic: Mar 22
+              - generic:
+                - generic: Apr 5
+              - generic:
+                - generic: Apr 19
+              - generic:
+                - generic: May 3
+            - generic:
+              - generic:
+                - generic: 4M
+              - generic:
+                - generic: 4.5M
+              - generic:
+                - generic: 5M
+              - generic:
+                - generic: 5.5M
+              - generic:
+                - generic: 6M
+              - generic:
+                - generic: 6.5M
+              - generic:
+                - generic: 7M
+              - generic:
+                - generic: 7.5M
+      - img:
+        - generic:
+          - generic [ref=e50]:
+            - generic [ref=e51]: Metric
+            - generic [ref=e54]: total_value
+            - generic [ref=e58]: total_cost_basis
+          - generic:
+            - generic: Portfolio Value History
+          - generic:
+            - generic: Date
+          - generic:
+            - generic: Value ($)
+      - generic [ref=e60]:
+        - img [ref=e63] [cursor=pointer]
+        - generic [ref=e65]:
+          - img [ref=e67] [cursor=pointer]
+          - img [ref=e70] [cursor=pointer]
+        - generic [ref=e72]:
+          - img [ref=e74] [cursor=pointer]
+          - img [ref=e77] [cursor=pointer]
+          - img [ref=e80] [cursor=pointer]
+          - img [ref=e83] [cursor=pointer]
+        - link "plotly-logomark" [ref=e86] [cursor=pointer]:
+          - /url: https://plotly.com/
+          - img "plotly-logomark" [ref=e87]
+      - img
+    - generic [ref=e100]:
+      - heading "Current Holdings" [level=5] [ref=e102]
+      - table [ref=e104]:
+        - rowgroup [ref=e105]:
+          - row "Symbol ↕ Description ↕ Qty ↕ Price ↕ Base Value ↕ Value ↕ Day Change ↕ Unrealized G/L ↕ % Port ↕ % Accum ↕" [ref=e106]:
+            - columnheader "Symbol ↕" [ref=e107] [cursor=pointer]
+            - columnheader "Description ↕" [ref=e108] [cursor=pointer]
+            - columnheader "Qty ↕" [ref=e109] [cursor=pointer]
+            - columnheader "Price ↕" [ref=e110] [cursor=pointer]
+            - columnheader "Base Value ↕" [ref=e111] [cursor=pointer]
+            - columnheader "Value ↕" [ref=e112] [cursor=pointer]
+            - columnheader "Day Change ↕" [ref=e113] [cursor=pointer]
+            - columnheader "Unrealized G/L ↕" [ref=e114] [cursor=pointer]
+            - columnheader "% Port ↕" [ref=e115] [cursor=pointer]
+            - columnheader "% Accum ↕" [ref=e116] [cursor=pointer]
+        - rowgroup [ref=e117]:
+          - row "NVDA NVIDIA 8234.1090 $225.32 $1,005,088.77 $1,855,309.44 $-10,452.40 -0.56% $850,220.67 84.59% 25.20% 25.20%" [ref=e118]:
+            - cell "NVDA" [ref=e119]:
+              - link "NVDA" [ref=e120] [cursor=pointer]:
+                - /url: "#"
+            - cell "NVIDIA" [ref=e121]:
+              - generic "NVIDIA" [ref=e122]
+            - cell "8234.1090" [ref=e123]
+            - cell "$225.32" [ref=e124]
+            - cell "$1,005,088.77" [ref=e125]
+            - cell "$1,855,309.44" [ref=e126]
+            - cell "$-10,452.40 -0.56%" [ref=e127]:
+              - text: $-10,452.40
+              - text: "-0.56%"
+            - cell "$850,220.67 84.59%" [ref=e128]:
+              - text: $850,220.67
+              - text: 84.59%
+            - cell "25.20%" [ref=e129]
+            - cell "25.20%" [ref=e130]
+          - row "GOOG ALPHABET INC SHS CL C 2560.0000 $393.32 $187,724.96 $1,006,899.21 $-3.85 -0.00% $819,174.25 436.37% 13.67% 38.87%" [ref=e131]:
+            - cell "GOOG" [ref=e132]:
+              - link "GOOG" [ref=e133] [cursor=pointer]:
+                - /url: "#"
+            - cell "ALPHABET INC SHS CL C" [ref=e134]:
+              - generic "ALPHABET INC SHS CL C" [ref=e135]
+            - cell "2560.0000" [ref=e136]
+            - cell "$393.32" [ref=e137]
+            - cell "$187,724.96" [ref=e138]
+            - cell "$1,006,899.21" [ref=e139]
+            - cell "$-3.85 -0.00%" [ref=e140]:
+              - text: $-3.85
+              - text: "-0.00%"
+            - cell "$819,174.25 436.37%" [ref=e141]:
+              - text: $819,174.25
+              - text: 436.37%
+            - cell "13.67%" [ref=e142]
+            - cell "38.87%" [ref=e143]
+          - row "AAPL APPLE INC 2348.0000 $300.23 $347,896.17 $704,940.03 $4.04 0.00% $357,043.86 102.63% 9.57% 48.44%" [ref=e144]:
+            - cell "AAPL" [ref=e145]:
+              - link "AAPL" [ref=e146] [cursor=pointer]:
+                - /url: "#"
+            - cell "APPLE INC" [ref=e147]:
+              - generic "APPLE INC" [ref=e148]
+            - cell "2348.0000" [ref=e149]
+            - cell "$300.23" [ref=e150]
+            - cell "$347,896.17" [ref=e151]
+            - cell "$704,940.03" [ref=e152]
+            - cell "$4.04 0.00%" [ref=e153]:
+              - text: $4.04
+              - text: 0.00%
+            - cell "$357,043.86 102.63%" [ref=e154]:
+              - text: $357,043.86
+              - text: 102.63%
+            - cell "9.57%" [ref=e155]
+            - cell "48.44%" [ref=e156]
+          - row "TSM TAIWAN S MANUFCTRING ADR 1359.9915 $404.35 $363,243.26 $549,912.55 $-6,738.37 -1.21% $186,669.29 51.39% 7.47% 55.91%" [ref=e157]:
+            - cell "TSM" [ref=e158]:
+              - link "TSM" [ref=e159] [cursor=pointer]:
+                - /url: "#"
+            - cell "TAIWAN S MANUFCTRING ADR" [ref=e160]:
+              - generic "TAIWAN S MANUFCTRING ADR" [ref=e161]
+            - cell "1359.9915" [ref=e162]
+            - cell "$404.35" [ref=e163]
+            - cell "$363,243.26" [ref=e164]
+            - cell "$549,912.55" [ref=e165]
+            - cell "$-6,738.37 -1.21%" [ref=e166]:
+              - text: $-6,738.37
+              - text: "-1.21%"
+            - cell "$186,669.29 51.39%" [ref=e167]:
+              - text: $186,669.29
+              - text: 51.39%
+            - cell "7.47%" [ref=e168]
+            - cell "55.91%" [ref=e169]
+          - row "CLS CELESTICA INC 1000.0000 $358.55 $81,119.90 $358,550.00 $-23.04 -0.01% $277,430.10 342.00% 4.87% 60.78%" [ref=e170]:
+            - cell "CLS" [ref=e171]:
+              - link "CLS" [ref=e172] [cursor=pointer]:
+                - /url: "#"
+            - cell "CELESTICA INC" [ref=e173]:
+              - generic "CELESTICA INC" [ref=e174]
+            - cell "1000.0000" [ref=e175]
+            - cell "$358.55" [ref=e176]
+            - cell "$81,119.90" [ref=e177]
+            - cell "$358,550.00" [ref=e178]
+            - cell "$-23.04 -0.01%" [ref=e179]:
+              - text: $-23.04
+              - text: "-0.01%"
+            - cell "$277,430.10 342.00%" [ref=e180]:
+              - text: $277,430.10
+              - text: 342.00%
+            - cell "4.87%" [ref=e181]
+            - cell "60.78%" [ref=e182]
+          - row "VOO VANGUARD 500 INDEX FUND 495.0000 $679.44 $174,537.16 $336,322.80 $-16.58 -0.00% $161,785.64 92.69% 4.57% 65.35%" [ref=e183]:
+            - cell "VOO" [ref=e184]:
+              - link "VOO" [ref=e185] [cursor=pointer]:
+                - /url: "#"
+            - cell "VANGUARD 500 INDEX FUND" [ref=e186]:
+              - generic "VANGUARD 500 INDEX FUND" [ref=e187]
+            - cell "495.0000" [ref=e188]
+            - cell "$679.44" [ref=e189]
+            - cell "$174,537.16" [ref=e190]
+            - cell "$336,322.80" [ref=e191]
+            - cell "$-16.58 -0.00%" [ref=e192]:
+              - text: $-16.58
+              - text: "-0.00%"
+            - cell "$161,785.64 92.69%" [ref=e193]:
+              - text: $161,785.64
+              - text: 92.69%
+            - cell "4.57%" [ref=e194]
+            - cell "65.35%" [ref=e195]
+          - row "MSFT MICROSOFT CORP 775.4494 $421.92 $338,008.25 $327,177.61 $2,516.10 0.77% $-10,830.64 -3.20% 4.44% 69.79%" [ref=e196]:
+            - cell "MSFT" [ref=e197]:
+              - link "MSFT" [ref=e198] [cursor=pointer]:
+                - /url: "#"
+            - cell "MICROSOFT CORP" [ref=e199]:
+              - generic "MICROSOFT CORP" [ref=e200]
+            - cell "775.4494" [ref=e201]
+            - cell "$421.92" [ref=e202]
+            - cell "$338,008.25" [ref=e203]
+            - cell "$327,177.61" [ref=e204]
+            - cell "$2,516.10 0.77%" [ref=e205]:
+              - text: $2,516.10
+              - text: 0.77%
+            - cell "$-10,830.64 -3.20%" [ref=e206]:
+              - text: $-10,830.64
+              - text: "-3.20%"
+            - cell "4.44%" [ref=e207]
+            - cell "69.79%" [ref=e208]
+          - row "INTC INTEL CORP 3000.0000 $108.77 $113,239.50 $326,310.00 $-7.16 -0.00% $213,070.50 188.16% 4.43% 74.22%" [ref=e209]:
+            - cell "INTC" [ref=e210]:
+              - link "INTC" [ref=e211] [cursor=pointer]:
+                - /url: "#"
+            - cell "INTEL CORP" [ref=e212]:
+              - generic "INTEL CORP" [ref=e213]
+            - cell "3000.0000" [ref=e214]
+            - cell "$108.77" [ref=e215]
+            - cell "$113,239.50" [ref=e216]
+            - cell "$326,310.00" [ref=e217]
+            - cell "$-7.16 -0.00%" [ref=e218]:
+              - text: $-7.16
+              - text: "-0.00%"
+            - cell "$213,070.50 188.16%" [ref=e219]:
+              - text: $213,070.50
+              - text: 188.16%
+            - cell "4.43%" [ref=e220]
+            - cell "74.22%" [ref=e221]
+          - row "BRKB BERKSHIRE HATHAWAYINC 596.0000 $482.70 $152,906.39 $287,689.20 $-1.36 -0.00% $134,782.81 88.15% 3.91% 78.13%" [ref=e222]:
+            - cell "BRKB" [ref=e223]:
+              - link "BRKB" [ref=e224] [cursor=pointer]:
+                - /url: "#"
+            - cell "BERKSHIRE HATHAWAYINC" [ref=e225]:
+              - generic "BERKSHIRE HATHAWAYINC" [ref=e226]
+            - cell "596.0000" [ref=e227]
+            - cell "$482.70" [ref=e228]
+            - cell "$152,906.39" [ref=e229]
+            - cell "$287,689.20" [ref=e230]
+            - cell "$-1.36 -0.00%" [ref=e231]:
+              - text: $-1.36
+              - text: "-0.00%"
+            - cell "$134,782.81 88.15%" [ref=e232]:
+              - text: $134,782.81
+              - text: 88.15%
+            - cell "3.91%" [ref=e233]
+            - cell "78.13%" [ref=e234]
+          - row "CRDO CREDO TECH GROUP HLDG 869.0000 $172.17 $87,222.10 $149,615.73 $-24.74 -0.02% $62,393.63 71.53% 2.03% 80.16%" [ref=e235]:
+            - cell "CRDO" [ref=e236]:
+              - link "CRDO" [ref=e237] [cursor=pointer]:
+                - /url: "#"
+            - cell "CREDO TECH GROUP HLDG" [ref=e238]:
+              - generic "CREDO TECH GROUP HLDG" [ref=e239]
+            - cell "869.0000" [ref=e240]
+            - cell "$172.17" [ref=e241]
+            - cell "$87,222.10" [ref=e242]
+            - cell "$149,615.73" [ref=e243]
+            - cell "$-24.74 -0.02%" [ref=e244]:
+              - text: $-24.74
+              - text: "-0.02%"
+            - cell "$62,393.63 71.53%" [ref=e245]:
+              - text: $62,393.63
+              - text: 71.53%
+            - cell "2.03%" [ref=e246]
+            - cell "80.16%" [ref=e247]
+          - row "IBIT ISHARES BITCOIN 3243.0000 $44.82 $199,149.94 $145,351.26 $-4,368.67 -2.92% $-53,798.62 -27.01% 1.97% 82.13%" [ref=e248]:
+            - cell "IBIT" [ref=e249]:
+              - link "IBIT" [ref=e250] [cursor=pointer]:
+                - /url: "#"
+            - cell "ISHARES BITCOIN" [ref=e251]:
+              - generic "ISHARES BITCOIN" [ref=e252]
+            - cell "3243.0000" [ref=e253]
+            - cell "$44.82" [ref=e254]
+            - cell "$199,149.94" [ref=e255]
+            - cell "$145,351.26" [ref=e256]
+            - cell "$-4,368.67 -2.92%" [ref=e257]:
+              - text: $-4,368.67
+              - text: "-2.92%"
+            - cell "$-53,798.62 -27.01%" [ref=e258]:
+              - text: $-53,798.62
+              - text: "-27.01%"
+            - cell "1.97%" [ref=e259]
+            - cell "82.13%" [ref=e260]
+          - row "AMZN AMAZON COM INC COM 520.0000 $264.14 $83,009.73 $137,352.80 $-3.08 -0.00% $54,343.07 65.47% 1.87% 84.00%" [ref=e261]:
+            - cell "AMZN" [ref=e262]:
+              - link "AMZN" [ref=e263] [cursor=pointer]:
+                - /url: "#"
+            - cell "AMAZON COM INC COM" [ref=e264]:
+              - generic "AMAZON COM INC COM" [ref=e265]
+            - cell "520.0000" [ref=e266]
+            - cell "$264.14" [ref=e267]
+            - cell "$83,009.73" [ref=e268]
+            - cell "$137,352.80" [ref=e269]
+            - cell "$-3.08 -0.00%" [ref=e270]:
+              - text: $-3.08
+              - text: "-0.00%"
+            - cell "$54,343.07 65.47%" [ref=e271]:
+              - text: $54,343.07
+              - text: 65.47%
+            - cell "1.87%" [ref=e272]
+            - cell "84.00%" [ref=e273]
+          - row "SPMO INVESCO S AND P 500 764.1177 $143.48 $88,867.91 $109,635.60 $-3,042.60 -2.70% $20,767.70 23.37% 1.49% 85.49%" [ref=e274]:
+            - cell "SPMO" [ref=e275]:
+              - link "SPMO" [ref=e276] [cursor=pointer]:
+                - /url: "#"
+            - cell "INVESCO S AND P 500" [ref=e277]:
+              - generic "INVESCO S AND P 500" [ref=e278]
+            - cell "764.1177" [ref=e279]
+            - cell "$143.48" [ref=e280]
+            - cell "$88,867.91" [ref=e281]
+            - cell "$109,635.60" [ref=e282]
+            - cell "$-3,042.60 -2.70%" [ref=e283]:
+              - text: $-3,042.60
+              - text: "-2.70%"
+            - cell "$20,767.70 23.37%" [ref=e284]:
+              - text: $20,767.70
+              - text: 23.37%
+            - cell "1.49%" [ref=e285]
+            - cell "85.49%" [ref=e286]
+          - row "SGOV ISHARES TRUST ISHARES 0 3 MONTH TREASURY BOND ETF 1013.4954 $100.55 $102,037.84 $101,906.96 $30.40 0.03% $-130.88 -0.13% 1.38% 86.87%" [ref=e287]:
+            - cell "SGOV" [ref=e288]:
+              - link "SGOV" [ref=e289] [cursor=pointer]:
+                - /url: "#"
+            - cell "ISHARES TRUST ISHARES 0 3 MONTH TREASURY BOND ETF" [ref=e290]:
+              - generic "ISHARES TRUST ISHARES 0 3 MONTH TREASURY BOND ETF" [ref=e291]
+            - cell "1013.4954" [ref=e292]
+            - cell "$100.55" [ref=e293]
+            - cell "$102,037.84" [ref=e294]
+            - cell "$101,906.96" [ref=e295]
+            - cell "$30.40 0.03%" [ref=e296]:
+              - text: $30.40
+              - text: 0.03%
+            - cell "$-130.88 -0.13%" [ref=e297]:
+              - text: $-130.88
+              - text: "-0.13%"
+            - cell "1.38%" [ref=e298]
+            - cell "86.87%" [ref=e299]
+          - row "NEM NEWMONT CORPORATION 801.0000 $109.06 $90,175.32 $87,357.06 $-1,468.54 -1.65% $-2,818.26 -3.13% 1.19% 88.06%" [ref=e300]:
+            - cell "NEM" [ref=e301]:
+              - link "NEM" [ref=e302] [cursor=pointer]:
+                - /url: "#"
+            - cell "NEWMONT CORPORATION" [ref=e303]:
+              - generic "NEWMONT CORPORATION" [ref=e304]
+            - cell "801.0000" [ref=e305]
+            - cell "$109.06" [ref=e306]
+            - cell "$90,175.32" [ref=e307]
+            - cell "$87,357.06" [ref=e308]
+            - cell "$-1,468.54 -1.65%" [ref=e309]:
+              - text: $-1,468.54
+              - text: "-1.65%"
+            - cell "$-2,818.26 -3.13%" [ref=e310]:
+              - text: $-2,818.26
+              - text: "-3.13%"
+            - cell "1.19%" [ref=e311]
+            - cell "88.06%" [ref=e312]
+          - row "TWLO TWILIO INC CL A 400.0000 $198.29 $42,638.61 $79,316.00 $0.25 0.00% $36,677.39 86.02% 1.08% 89.14%" [ref=e313]:
+            - cell "TWLO" [ref=e314]:
+              - link "TWLO" [ref=e315] [cursor=pointer]:
+                - /url: "#"
+            - cell "TWILIO INC CL A" [ref=e316]:
+              - generic "TWILIO INC CL A" [ref=e317]
+            - cell "400.0000" [ref=e318]
+            - cell "$198.29" [ref=e319]
+            - cell "$42,638.61" [ref=e320]
+            - cell "$79,316.00" [ref=e321]
+            - cell "$0.25 0.00%" [ref=e322]:
+              - text: $0.25
+              - text: 0.00%
+            - cell "$36,677.39 86.02%" [ref=e323]:
+              - text: $36,677.39
+              - text: 86.02%
+            - cell "1.08%" [ref=e324]
+            - cell "89.14%" [ref=e325]
+          - row "FN FABRINET 106.0000 $722.04 $60,240.56 $76,536.24 $-952.77 -1.23% $16,295.68 27.05% 1.04% 90.17%" [ref=e326]:
+            - cell "FN" [ref=e327]:
+              - link "FN" [ref=e328] [cursor=pointer]:
+                - /url: "#"
+            - cell "FABRINET" [ref=e329]:
+              - generic "FABRINET" [ref=e330]
+            - cell "106.0000" [ref=e331]
+            - cell "$722.04" [ref=e332]
+            - cell "$60,240.56" [ref=e333]
+            - cell "$76,536.24" [ref=e334]
+            - cell "$-952.77 -1.23%" [ref=e335]:
+              - text: $-952.77
+              - text: "-1.23%"
+            - cell "$16,295.68 27.05%" [ref=e336]:
+              - text: $16,295.68
+              - text: 27.05%
+            - cell "1.04%" [ref=e337]
+            - cell "90.17%" [ref=e338]
+          - row "MXL MAXLINEAR INC CL A 813.0000 $92.34 $76,679.54 $75,072.42 $-199.38 -0.26% $-1,607.12 -2.10% 1.02% 91.19%" [ref=e339]:
+            - cell "MXL" [ref=e340]:
+              - link "MXL" [ref=e341] [cursor=pointer]:
+                - /url: "#"
+            - cell "MAXLINEAR INC CL A" [ref=e342]:
+              - generic "MAXLINEAR INC CL A" [ref=e343]
+            - cell "813.0000" [ref=e344]
+            - cell "$92.34" [ref=e345]
+            - cell "$76,679.54" [ref=e346]
+            - cell "$75,072.42" [ref=e347]
+            - cell "$-199.38 -0.26%" [ref=e348]:
+              - text: $-199.38
+              - text: "-0.26%"
+            - cell "$-1,607.12 -2.10%" [ref=e349]:
+              - text: $-1,607.12
+              - text: "-2.10%"
+            - cell "1.02%" [ref=e350]
+            - cell "91.19%" [ref=e351]
+          - row "ASML ASML HLDG NV NY REG SHS 47.0000 $1,501.81 $71,571.60 $70,585.07 $-82.70 -0.12% $-986.53 -1.38% 0.96% 92.15%" [ref=e352]:
+            - cell "ASML" [ref=e353]:
+              - link "ASML" [ref=e354] [cursor=pointer]:
+                - /url: "#"
+            - cell "ASML HLDG NV NY REG SHS" [ref=e355]:
+              - generic "ASML HLDG NV NY REG SHS" [ref=e356]
+            - cell "47.0000" [ref=e357]
+            - cell "$1,501.81" [ref=e358]
+            - cell "$71,571.60" [ref=e359]
+            - cell "$70,585.07" [ref=e360]
+            - cell "$-82.70 -0.12%" [ref=e361]:
+              - text: $-82.70
+              - text: "-0.12%"
+            - cell "$-986.53 -1.38%" [ref=e362]:
+              - text: $-986.53
+              - text: "-1.38%"
+            - cell "0.96%" [ref=e363]
+            - cell "92.15%" [ref=e364]
+          - row "SBS COMPANHIA DE SANEAMENTO BASICO SPONSORED ADR 11595.0000 $5.72 $45,178.76 $66,323.40 $-2,434.95 -3.54% $21,144.91 46.80% 0.90% 93.05%" [ref=e365]:
+            - cell "SBS" [ref=e366]:
+              - link "SBS" [ref=e367] [cursor=pointer]:
+                - /url: "#"
+            - cell "COMPANHIA DE SANEAMENTO BASICO SPONSORED ADR" [ref=e368]:
+              - generic "COMPANHIA DE SANEAMENTO BASICO SPONSORED ADR" [ref=e369]
+            - cell "11595.0000" [ref=e370]
+            - cell "$5.72" [ref=e371]
+            - cell "$45,178.76" [ref=e372]
+            - cell "$66,323.40" [ref=e373]
+            - cell "$-2,434.95 -3.54%" [ref=e374]:
+              - text: $-2,434.95
+              - text: "-3.54%"
+            - cell "$21,144.91 46.80%" [ref=e375]:
+              - text: $21,144.91
+              - text: 46.80%
+            - cell "0.90%" [ref=e376]
+            - cell "93.05%" [ref=e377]
+          - row "TIGO MILLICOM INTERNATIONAL CELLULAR S A COMMON STOCK 761.0000 $79.27 $40,408.10 $60,324.47 $-1,818.79 -2.93% $19,916.38 49.29% 0.82% 93.87%" [ref=e378]:
+            - cell "TIGO" [ref=e379]:
+              - link "TIGO" [ref=e380] [cursor=pointer]:
+                - /url: "#"
+            - cell "MILLICOM INTERNATIONAL CELLULAR S A COMMON STOCK" [ref=e381]:
+              - generic "MILLICOM INTERNATIONAL CELLULAR S A COMMON STOCK" [ref=e382]
+            - cell "761.0000" [ref=e383]
+            - cell "$79.27" [ref=e384]
+            - cell "$40,408.10" [ref=e385]
+            - cell "$60,324.47" [ref=e386]
+            - cell "$-1,818.79 -2.93%" [ref=e387]:
+              - text: $-1,818.79
+              - text: "-2.93%"
+            - cell "$19,916.38 49.29%" [ref=e388]:
+              - text: $19,916.38
+              - text: 49.29%
+            - cell "0.82%" [ref=e389]
+            - cell "93.87%" [ref=e390]
+          - row "HESAY HERMES INTL S A UNSPONSORED ADR 313.0000 $182.31 $74,837.99 $57,063.03 $-845.10 -1.46% $-18,204.86 -24.33% 0.77% 94.65%" [ref=e391]:
+            - cell "HESAY" [ref=e392]:
+              - link "HESAY" [ref=e393] [cursor=pointer]:
+                - /url: "#"
+            - cell "HERMES INTL S A UNSPONSORED ADR" [ref=e394]:
+              - generic "HERMES INTL S A UNSPONSORED ADR" [ref=e395]
+            - cell "313.0000" [ref=e396]
+            - cell "$182.31" [ref=e397]
+            - cell "$74,837.99" [ref=e398]
+            - cell "$57,063.03" [ref=e399]
+            - cell "$-845.10 -1.46%" [ref=e400]:
+              - text: $-845.10
+              - text: "-1.46%"
+            - cell "$-18,204.86 -24.33%" [ref=e401]:
+              - text: $-18,204.86
+              - text: "-24.33%"
+            - cell "0.77%" [ref=e402]
+            - cell "94.65%" [ref=e403]
+          - row "VGT VANGUARD SECTOR INDEX FDS VANGUARD INFORMATION TECHNOLOGY ETF 480.9881 $113.31 $44,361.74 $54,500.76 $-904.26 -1.63% $10,139.02 22.86% 0.74% 95.39%" [ref=e404]:
+            - cell "VGT" [ref=e405]:
+              - link "VGT" [ref=e406] [cursor=pointer]:
+                - /url: "#"
+            - cell "VANGUARD SECTOR INDEX FDS VANGUARD INFORMATION TECHNOLOGY ETF" [ref=e407]:
+              - generic "VANGUARD SECTOR INDEX FDS VANGUARD INFORMATION TECHNOLOGY ETF" [ref=e408]
+            - cell "480.9881" [ref=e409]
+            - cell "$113.31" [ref=e410]
+            - cell "$44,361.74" [ref=e411]
+            - cell "$54,500.76" [ref=e412]
+            - cell "$-904.26 -1.63%" [ref=e413]:
+              - text: $-904.26
+              - text: "-1.63%"
+            - cell "$10,139.02 22.86%" [ref=e414]:
+              - text: $10,139.02
+              - text: 22.86%
+            - cell "0.74%" [ref=e415]
+            - cell "95.39%" [ref=e416]
+          - row "MS MORGAN STANLEY 275.0000 $192.51 $11,440.75 $52,940.25 $-2.02 -0.00% $41,499.50 362.73% 0.72% 96.11%" [ref=e417]:
+            - cell "MS" [ref=e418]:
+              - link "MS" [ref=e419] [cursor=pointer]:
+                - /url: "#"
+            - cell "MORGAN STANLEY" [ref=e420]:
+              - generic "MORGAN STANLEY" [ref=e421]
+            - cell "275.0000" [ref=e422]
+            - cell "$192.51" [ref=e423]
+            - cell "$11,440.75" [ref=e424]
+            - cell "$52,940.25" [ref=e425]
+            - cell "$-2.02 -0.00%" [ref=e426]:
+              - text: $-2.02
+              - text: "-0.00%"
+            - cell "$41,499.50 362.73%" [ref=e427]:
+              - text: $41,499.50
+              - text: 362.73%
+            - cell "0.72%" [ref=e428]
+            - cell "96.11%" [ref=e429]
+          - row "CDE COEUR MNG INC COM NEW 3000.0000 $17.61 $48,975.00 $52,830.00 $-5,370.00 -9.23% $3,855.00 7.87% 0.72% 96.82%" [ref=e430]:
+            - cell "CDE" [ref=e431]:
+              - link "CDE" [ref=e432] [cursor=pointer]:
+                - /url: "#"
+            - cell "COEUR MNG INC COM NEW" [ref=e433]:
+              - generic "COEUR MNG INC COM NEW" [ref=e434]
+            - cell "3000.0000" [ref=e435]
+            - cell "$17.61" [ref=e436]
+            - cell "$48,975.00" [ref=e437]
+            - cell "$52,830.00" [ref=e438]
+            - cell "$-5,370.00 -9.23%" [ref=e439]:
+              - text: $-5,370.00
+              - text: "-9.23%"
+            - cell "$3,855.00 7.87%" [ref=e440]:
+              - text: $3,855.00
+              - text: 7.87%
+            - cell "0.72%" [ref=e441]
+            - cell "96.82%" [ref=e442]
+          - row "QXO QXO INC COMMON STOCK 2400.0000 $16.33 $46,184.12 $39,192.00 $-2,640.00 -6.31% $-6,992.12 -15.14% 0.53% 97.36%" [ref=e443]:
+            - cell "QXO" [ref=e444]:
+              - link "QXO" [ref=e445] [cursor=pointer]:
+                - /url: "#"
+            - cell "QXO INC COMMON STOCK" [ref=e446]:
+              - generic "QXO INC COMMON STOCK" [ref=e447]
+            - cell "2400.0000" [ref=e448]
+            - cell "$16.33" [ref=e449]
+            - cell "$46,184.12" [ref=e450]
+            - cell "$39,192.00" [ref=e451]
+            - cell "$-2,640.00 -6.31%" [ref=e452]:
+              - text: $-2,640.00
+              - text: "-6.31%"
+            - cell "$-6,992.12 -15.14%" [ref=e453]:
+              - text: $-6,992.12
+              - text: "-15.14%"
+            - cell "0.53%" [ref=e454]
+            - cell "97.36%" [ref=e455]
+          - row "ARKK ARK INNOVATION ETF 500.0000 $74.90 $41,538.25 $37,450.00 $-3.10 -0.01% $-4,088.25 -9.84% 0.51% 97.86%" [ref=e456]:
+            - cell "ARKK" [ref=e457]:
+              - link "ARKK" [ref=e458] [cursor=pointer]:
+                - /url: "#"
+            - cell "ARK INNOVATION ETF" [ref=e459]:
+              - generic "ARK INNOVATION ETF" [ref=e460]
+            - cell "500.0000" [ref=e461]
+            - cell "$74.90" [ref=e462]
+            - cell "$41,538.25" [ref=e463]
+            - cell "$37,450.00" [ref=e464]
+            - cell "$-3.10 -0.01%" [ref=e465]:
+              - text: $-3.10
+              - text: "-0.01%"
+            - cell "$-4,088.25 -9.84%" [ref=e466]:
+              - text: $-4,088.25
+              - text: "-9.84%"
+            - cell "0.51%" [ref=e467]
+            - cell "97.86%" [ref=e468]
+          - row "GS GOLDMAN SACHS GROUP INC 30.0000 $948.47 $6,421.64 $28,454.10 $-20.49 -0.07% $22,032.46 343.10% 0.39% 98.25%" [ref=e469]:
+            - cell "GS" [ref=e470]:
+              - link "GS" [ref=e471] [cursor=pointer]:
+                - /url: "#"
+            - cell "GOLDMAN SACHS GROUP INC" [ref=e472]:
+              - generic "GOLDMAN SACHS GROUP INC" [ref=e473]
+            - cell "30.0000" [ref=e474]
+            - cell "$948.47" [ref=e475]
+            - cell "$6,421.64" [ref=e476]
+            - cell "$28,454.10" [ref=e477]
+            - cell "$-20.49 -0.07%" [ref=e478]:
+              - text: $-20.49
+              - text: "-0.07%"
+            - cell "$22,032.46 343.10%" [ref=e479]:
+              - text: $22,032.46
+              - text: 343.10%
+            - cell "0.39%" [ref=e480]
+            - cell "98.25%" [ref=e481]
+          - row "JPM JPMORGAN CHASE & CO 80.0000 $297.81 $8,763.43 $23,824.80 $-4.20 -0.02% $15,061.37 171.87% 0.32% 98.57%" [ref=e482]:
+            - cell "JPM" [ref=e483]:
+              - link "JPM" [ref=e484] [cursor=pointer]:
+                - /url: "#"
+            - cell "JPMORGAN CHASE & CO" [ref=e485]:
+              - generic "JPMORGAN CHASE & CO" [ref=e486]
+            - cell "80.0000" [ref=e487]
+            - cell "$297.81" [ref=e488]
+            - cell "$8,763.43" [ref=e489]
+            - cell "$23,824.80" [ref=e490]
+            - cell "$-4.20 -0.02%" [ref=e491]:
+              - text: $-4.20
+              - text: "-0.02%"
+            - cell "$15,061.37 171.87%" [ref=e492]:
+              - text: $15,061.37
+              - text: 171.87%
+            - cell "0.32%" [ref=e493]
+            - cell "98.57%" [ref=e494]
+          - row "ZETA ZETA GLOBAL HLDGS CORP 1200.0000 $17.19 $23,335.82 $20,628.00 $0.61 0.00% $-2,707.82 -11.60% 0.28% 98.85%" [ref=e495]:
+            - cell "ZETA" [ref=e496]:
+              - link "ZETA" [ref=e497] [cursor=pointer]:
+                - /url: "#"
+            - cell "ZETA GLOBAL HLDGS CORP" [ref=e498]:
+              - generic "ZETA GLOBAL HLDGS CORP" [ref=e499]
+            - cell "1200.0000" [ref=e500]
+            - cell "$17.19" [ref=e501]
+            - cell "$23,335.82" [ref=e502]
+            - cell "$20,628.00" [ref=e503]
+            - cell "$0.61 0.00%" [ref=e504]:
+              - text: $0.61
+              - text: 0.00%
+            - cell "$-2,707.82 -11.60%" [ref=e505]:
+              - text: $-2,707.82
+              - text: "-11.60%"
+            - cell "0.28%" [ref=e506]
+            - cell "98.85%" [ref=e507]
+          - row "UNH UNITEDHEALTH GROUP INC COM 50.0000 $393.85 $12,350.00 $19,692.50 $-262.00 -1.31% $7,342.50 59.45% 0.27% 99.12%" [ref=e508]:
+            - cell "UNH" [ref=e509]:
+              - link "UNH" [ref=e510] [cursor=pointer]:
+                - /url: "#"
+            - cell "UNITEDHEALTH GROUP INC COM" [ref=e511]:
+              - generic "UNITEDHEALTH GROUP INC COM" [ref=e512]
+            - cell "50.0000" [ref=e513]
+            - cell "$393.85" [ref=e514]
+            - cell "$12,350.00" [ref=e515]
+            - cell "$19,692.50" [ref=e516]
+            - cell "$-262.00 -1.31%" [ref=e517]:
+              - text: $-262.00
+              - text: "-1.31%"
+            - cell "$7,342.50 59.45%" [ref=e518]:
+              - text: $7,342.50
+              - text: 59.45%
+            - cell "0.27%" [ref=e519]
+            - cell "99.12%" [ref=e520]
+          - row "BAC BANK OF AMERICA CORP 300.0000 $49.77 $8,281.27 $14,931.00 $-0.08 -0.00% $6,649.73 80.30% 0.20% 99.32%" [ref=e521]:
+            - cell "BAC" [ref=e522]:
+              - link "BAC" [ref=e523] [cursor=pointer]:
+                - /url: "#"
+            - cell "BANK OF AMERICA CORP" [ref=e524]:
+              - generic "BANK OF AMERICA CORP" [ref=e525]
+            - cell "300.0000" [ref=e526]
+            - cell "$49.77" [ref=e527]
+            - cell "$8,281.27" [ref=e528]
+            - cell "$14,931.00" [ref=e529]
+            - cell "$-0.08 -0.00%" [ref=e530]:
+              - text: $-0.08
+              - text: "-0.00%"
+            - cell "$6,649.73 80.30%" [ref=e531]:
+              - text: $6,649.73
+              - text: 80.30%
+            - cell "0.20%" [ref=e532]
+            - cell "99.32%" [ref=e533]
+          - row "SRBK SR BANCORP INC REG SHS 730.0000 $18.01 $10,291.70 $13,147.30 $-0.23 -0.00% $2,855.60 27.75% 0.18% 99.50%" [ref=e534]:
+            - cell "SRBK" [ref=e535]:
+              - link "SRBK" [ref=e536] [cursor=pointer]:
+                - /url: "#"
+            - cell "SR BANCORP INC REG SHS" [ref=e537]:
+              - generic "SR BANCORP INC REG SHS" [ref=e538]
+            - cell "730.0000" [ref=e539]
+            - cell "$18.01" [ref=e540]
+            - cell "$10,291.70" [ref=e541]
+            - cell "$13,147.30" [ref=e542]
+            - cell "$-0.23 -0.00%" [ref=e543]:
+              - text: $-0.23
+              - text: "-0.00%"
+            - cell "$2,855.60 27.75%" [ref=e544]:
+              - text: $2,855.60
+              - text: 27.75%
+            - cell "0.18%" [ref=e545]
+            - cell "99.50%" [ref=e546]
+          - row "VISN VISTANCE NETWORKS INC COM 1000.0000 $11.37 $5,480.00 $11,370.00 $-60.00 -0.52% $5,890.00 107.48% 0.15% 99.66%" [ref=e547]:
+            - cell "VISN" [ref=e548]:
+              - link "VISN" [ref=e549] [cursor=pointer]:
+                - /url: "#"
+            - cell "VISTANCE NETWORKS INC COM" [ref=e550]:
+              - generic "VISTANCE NETWORKS INC COM" [ref=e551]
+            - cell "1000.0000" [ref=e552]
+            - cell "$11.37" [ref=e553]
+            - cell "$5,480.00" [ref=e554]
+            - cell "$11,370.00" [ref=e555]
+            - cell "$-60.00 -0.52%" [ref=e556]:
+              - text: $-60.00
+              - text: "-0.52%"
+            - cell "$5,890.00 107.48%" [ref=e557]:
+              - text: $5,890.00
+              - text: 107.48%
+            - cell "0.15%" [ref=e558]
+            - cell "99.66%" [ref=e559]
+          - row "MU MICRON TECHNOLOGY INC COM 15.0000 $724.66 $3,646.05 $10,869.90 $-770.25 -6.62% $7,223.85 198.13% 0.15% 99.81%" [ref=e560]:
+            - cell "MU" [ref=e561]:
+              - link "MU" [ref=e562] [cursor=pointer]:
+                - /url: "#"
+            - cell "MICRON TECHNOLOGY INC COM" [ref=e563]:
+              - generic "MICRON TECHNOLOGY INC COM" [ref=e564]
+            - cell "15.0000" [ref=e565]
+            - cell "$724.66" [ref=e566]
+            - cell "$3,646.05" [ref=e567]
+            - cell "$10,869.90" [ref=e568]
+            - cell "$-770.25 -6.62%" [ref=e569]:
+              - text: $-770.25
+              - text: "-6.62%"
+            - cell "$7,223.85 198.13%" [ref=e570]:
+              - text: $7,223.85
+              - text: 198.13%
+            - cell "0.15%" [ref=e571]
+            - cell "99.81%" [ref=e572]
+          - row "SCHW SCHWAB CHARLES CORP NEW 100.0000 $90.88 $3,730.84 $9,088.00 $1.44 0.02% $5,357.16 143.59% 0.12% 99.93%" [ref=e573]:
+            - cell "SCHW" [ref=e574]:
+              - link "SCHW" [ref=e575] [cursor=pointer]:
+                - /url: "#"
+            - cell "SCHWAB CHARLES CORP NEW" [ref=e576]:
+              - generic "SCHWAB CHARLES CORP NEW" [ref=e577]
+            - cell "100.0000" [ref=e578]
+            - cell "$90.88" [ref=e579]
+            - cell "$3,730.84" [ref=e580]
+            - cell "$9,088.00" [ref=e581]
+            - cell "$1.44 0.02%" [ref=e582]:
+              - text: $1.44
+              - text: 0.02%
+            - cell "$5,357.16 143.59%" [ref=e583]:
+              - text: $5,357.16
+              - text: 143.59%
+            - cell "0.12%" [ref=e584]
+            - cell "99.93%" [ref=e585]
+          - row "CROX CROCS INC 50.0000 $94.94 $3,755.33 $4,747.00 $-111.00 -2.28% $991.67 26.41% 0.06% 99.99%" [ref=e586]:
+            - cell "CROX" [ref=e587]:
+              - link "CROX" [ref=e588] [cursor=pointer]:
+                - /url: "#"
+            - cell "CROCS INC" [ref=e589]:
+              - generic "CROCS INC" [ref=e590]
+            - cell "50.0000" [ref=e591]
+            - cell "$94.94" [ref=e592]
+            - cell "$3,755.33" [ref=e593]
+            - cell "$4,747.00" [ref=e594]
+            - cell "$-111.00 -2.28%" [ref=e595]:
+              - text: $-111.00
+              - text: "-2.28%"
+            - cell "$991.67 26.41%" [ref=e596]:
+              - text: $991.67
+              - text: 26.41%
+            - cell "0.06%" [ref=e597]
+            - cell "99.99%" [ref=e598]
+          - row "FRFHF FAIRFAX FINL HLDGS LTD 3.0000 $1,578.90 $5,031.54 $4,736.70 $-19.34 -0.41% $-294.84 -5.86% 0.06% 100.06%" [ref=e599]:
+            - cell "FRFHF" [ref=e600]:
+              - link "FRFHF" [ref=e601] [cursor=pointer]:
+                - /url: "#"
+            - cell "FAIRFAX FINL HLDGS LTD" [ref=e602]:
+              - generic "FAIRFAX FINL HLDGS LTD" [ref=e603]
+            - cell "3.0000" [ref=e604]
+            - cell "$1,578.90" [ref=e605]
+            - cell "$5,031.54" [ref=e606]
+            - cell "$4,736.70" [ref=e607]
+            - cell "$-19.34 -0.41%" [ref=e608]:
+              - text: $-19.34
+              - text: "-0.41%"
+            - cell "$-294.84 -5.86%" [ref=e609]:
+              - text: $-294.84
+              - text: "-5.86%"
+            - cell "0.06%" [ref=e610]
+            - cell "100.06%" [ref=e611]
+          - row "HOOD ROBINHOOD MARKETS, INC 8.0000 $77.14 $287.68 $617.12 $-3.56 -0.57% $329.44 114.52% 0.01% 100.07%" [ref=e612]:
+            - cell "HOOD" [ref=e613]:
+              - link "HOOD" [ref=e614] [cursor=pointer]:
+                - /url: "#"
+            - cell "ROBINHOOD MARKETS, INC" [ref=e615]:
+              - generic "ROBINHOOD MARKETS, INC" [ref=e616]
+            - cell "8.0000" [ref=e617]
+            - cell "$77.14" [ref=e618]
+            - cell "$287.68" [ref=e619]
+            - cell "$617.12" [ref=e620]
+            - cell "$-3.56 -0.57%" [ref=e621]:
+              - text: $-3.56
+              - text: "-0.57%"
+            - cell "$329.44 114.52%" [ref=e622]:
+              - text: $329.44
+              - text: 114.52%
+            - cell "0.01%" [ref=e623]
+            - cell "100.07%" [ref=e624]
+          - row "DECK DECKERS OUTDOOR CORPORATION 5.0000 $93.56 $524.75 $467.80 $-7.05 -1.48% $-56.95 -10.85% 0.01% 100.07%" [ref=e625]:
+            - cell "DECK" [ref=e626]:
+              - link "DECK" [ref=e627] [cursor=pointer]:
+                - /url: "#"
+            - cell "DECKERS OUTDOOR CORPORATION" [ref=e628]:
+              - generic "DECKERS OUTDOOR CORPORATION" [ref=e629]
+            - cell "5.0000" [ref=e630]
+            - cell "$93.56" [ref=e631]
+            - cell "$524.75" [ref=e632]
+            - cell "$467.80" [ref=e633]
+            - cell "$-7.05 -1.48%" [ref=e634]:
+              - text: $-7.05
+              - text: "-1.48%"
+            - cell "$-56.95 -10.85%" [ref=e635]:
+              - text: $-56.95
+              - text: "-10.85%"
+            - cell "0.01%" [ref=e636]
+            - cell "100.07%" [ref=e637]
+          - row "GRAB GRAB HOLDINGS LTD - 77.0000 $3.55 $457.47 $273.35 $-0.06 -0.02% $-184.12 -40.25% 0.00% 100.08%" [ref=e638]:
+            - cell "GRAB" [ref=e639]:
+              - link "GRAB" [ref=e640] [cursor=pointer]:
+                - /url: "#"
+            - cell "GRAB HOLDINGS LTD -" [ref=e641]:
+              - generic "GRAB HOLDINGS LTD -" [ref=e642]
+            - cell "77.0000" [ref=e643]
+            - cell "$3.55" [ref=e644]
+            - cell "$457.47" [ref=e645]
+            - cell "$273.35" [ref=e646]
+            - cell "$-0.06 -0.02%" [ref=e647]:
+              - text: $-0.06
+              - text: "-0.02%"
+            - cell "$-184.12 -40.25%" [ref=e648]:
+              - text: $-184.12
+              - text: "-40.25%"
+            - cell "0.00%" [ref=e649]
+            - cell "100.08%" [ref=e650]
+          - row "BN BROOKFIELD CORP 4.0028 $45.54 $206.35 $182.29 $-3.99 -2.14% $-24.06 -11.66% 0.00% 100.08%" [ref=e651]:
+            - cell "BN" [ref=e652]:
+              - link "BN" [ref=e653] [cursor=pointer]:
+                - /url: "#"
+            - cell "BROOKFIELD CORP" [ref=e654]:
+              - generic "BROOKFIELD CORP" [ref=e655]
+            - cell "4.0028" [ref=e656]
+            - cell "$45.54" [ref=e657]
+            - cell "$206.35" [ref=e658]
+            - cell "$182.29" [ref=e659]
+            - cell "$-3.99 -2.14%" [ref=e660]:
+              - text: $-3.99
+              - text: "-2.14%"
+            - cell "$-24.06 -11.66%" [ref=e661]:
+              - text: $-24.06
+              - text: "-11.66%"
+            - cell "0.00%" [ref=e662]
+            - cell "100.08%" [ref=e663]
+          - row "TALO TALOS ENERGY INC REG SHS 11.0000 $16.39 $100.43 $180.29 $0.96 0.54% $79.86 79.52% 0.00% 100.08%" [ref=e664]:
+            - cell "TALO" [ref=e665]:
+              - link "TALO" [ref=e666] [cursor=pointer]:
+                - /url: "#"
+            - cell "TALOS ENERGY INC REG SHS" [ref=e667]:
+              - generic "TALOS ENERGY INC REG SHS" [ref=e668]
+            - cell "11.0000" [ref=e669]
+            - cell "$16.39" [ref=e670]
+            - cell "$100.43" [ref=e671]
+            - cell "$180.29" [ref=e672]
+            - cell "$0.96 0.54%" [ref=e673]:
+              - text: $0.96
+              - text: 0.54%
+            - cell "$79.86 79.52%" [ref=e674]:
+              - text: $79.86
+              - text: 79.52%
+            - cell "0.00%" [ref=e675]
+            - cell "100.08%" [ref=e676]
+          - row "ZIM ZIM INTEGRATED SHIPPING 7.0000 $25.57 $114.12 $178.99 $-0.11 -0.06% $64.87 56.84% 0.00% 100.08%" [ref=e677]:
+            - cell "ZIM" [ref=e678]:
+              - link "ZIM" [ref=e679] [cursor=pointer]:
+                - /url: "#"
+            - cell "ZIM INTEGRATED SHIPPING" [ref=e680]:
+              - generic "ZIM INTEGRATED SHIPPING" [ref=e681]
+            - cell "7.0000" [ref=e682]
+            - cell "$25.57" [ref=e683]
+            - cell "$114.12" [ref=e684]
+            - cell "$178.99" [ref=e685]
+            - cell "$-0.11 -0.06%" [ref=e686]:
+              - text: $-0.11
+              - text: "-0.06%"
+            - cell "$64.87 56.84%" [ref=e687]:
+              - text: $64.87
+              - text: 56.84%
+            - cell "0.00%" [ref=e688]
+            - cell "100.08%" [ref=e689]
+          - row "IBKR INTERACTIVE BROKERS GROU 2.0000 $87.00 $118.46 $174.00 $-1.28 -0.73% $55.54 46.89% 0.00% 100.09%" [ref=e690]:
+            - cell "IBKR" [ref=e691]:
+              - link "IBKR" [ref=e692] [cursor=pointer]:
+                - /url: "#"
+            - cell "INTERACTIVE BROKERS GROU" [ref=e693]:
+              - generic "INTERACTIVE BROKERS GROU" [ref=e694]
+            - cell "2.0000" [ref=e695]
+            - cell "$87.00" [ref=e696]
+            - cell "$118.46" [ref=e697]
+            - cell "$174.00" [ref=e698]
+            - cell "$-1.28 -0.73%" [ref=e699]:
+              - text: $-1.28
+              - text: "-0.73%"
+            - cell "$55.54 46.89%" [ref=e700]:
+              - text: $55.54
+              - text: 46.89%
+            - cell "0.00%" [ref=e701]
+            - cell "100.09%" [ref=e702]
+          - row "NOK NOKIA CORP SPON ADR 12.0000 $13.95 $165.30 $167.40 $-0.51 -0.30% $2.10 1.27% 0.00% 100.09%" [ref=e703]:
+            - cell "NOK" [ref=e704]:
+              - link "NOK" [ref=e705] [cursor=pointer]:
+                - /url: "#"
+            - cell "NOKIA CORP SPON ADR" [ref=e706]:
+              - generic "NOKIA CORP SPON ADR" [ref=e707]
+            - cell "12.0000" [ref=e708]
+            - cell "$13.95" [ref=e709]
+            - cell "$165.30" [ref=e710]
+            - cell "$167.40" [ref=e711]
+            - cell "$-0.51 -0.30%" [ref=e712]:
+              - text: $-0.51
+              - text: "-0.30%"
+            - cell "$2.10 1.27%" [ref=e713]:
+              - text: $2.10
+              - text: 1.27%
+            - cell "0.00%" [ref=e714]
+            - cell "100.09%" [ref=e715]
+          - row "STNG SCORPIO TANKERS INC REG 2.0000 $82.12 $90.94 $164.24 $-0.60 -0.36% $73.30 80.60% 0.00% 100.09%" [ref=e716]:
+            - cell "STNG" [ref=e717]:
+              - link "STNG" [ref=e718] [cursor=pointer]:
+                - /url: "#"
+            - cell "SCORPIO TANKERS INC REG" [ref=e719]:
+              - generic "SCORPIO TANKERS INC REG" [ref=e720]
+            - cell "2.0000" [ref=e721]
+            - cell "$82.12" [ref=e722]
+            - cell "$90.94" [ref=e723]
+            - cell "$164.24" [ref=e724]
+            - cell "$-0.60 -0.36%" [ref=e725]:
+              - text: $-0.60
+              - text: "-0.36%"
+            - cell "$73.30 80.60%" [ref=e726]:
+              - text: $73.30
+              - text: 80.60%
+            - cell "0.00%" [ref=e727]
+            - cell "100.09%" [ref=e728]
+          - row "EC ECOPETROL SA SPON ADR 11.0000 $13.09 $99.88 $143.99 $-0.13 -0.09% $44.11 44.16% 0.00% 100.09%" [ref=e729]:
+            - cell "EC" [ref=e730]:
+              - link "EC" [ref=e731] [cursor=pointer]:
+                - /url: "#"
+            - cell "ECOPETROL SA SPON ADR" [ref=e732]:
+              - generic "ECOPETROL SA SPON ADR" [ref=e733]
+            - cell "11.0000" [ref=e734]
+            - cell "$13.09" [ref=e735]
+            - cell "$99.88" [ref=e736]
+            - cell "$143.99" [ref=e737]
+            - cell "$-0.13 -0.09%" [ref=e738]:
+              - text: $-0.13
+              - text: "-0.09%"
+            - cell "$44.11 44.16%" [ref=e739]:
+              - text: $44.11
+              - text: 44.16%
+            - cell "0.00%" [ref=e740]
+            - cell "100.09%" [ref=e741]
+          - row "DCH DAUCH CORPORATION 22.0000 $6.36 $97.90 $139.92 $-0.51 -0.36% $42.02 42.92% 0.00% 100.09%" [ref=e742]:
+            - cell "DCH" [ref=e743]:
+              - link "DCH" [ref=e744] [cursor=pointer]:
+                - /url: "#"
+            - cell "DAUCH CORPORATION" [ref=e745]:
+              - generic "DAUCH CORPORATION" [ref=e746]
+            - cell "22.0000" [ref=e747]
+            - cell "$6.36" [ref=e748]
+            - cell "$97.90" [ref=e749]
+            - cell "$139.92" [ref=e750]
+            - cell "$-0.51 -0.36%" [ref=e751]:
+              - text: $-0.51
+              - text: "-0.36%"
+            - cell "$42.02 42.92%" [ref=e752]:
+              - text: $42.02
+              - text: 42.92%
+            - cell "0.00%" [ref=e753]
+            - cell "100.09%" [ref=e754]
+          - row "EAT BRINKER INTL INC 1.0000 $137.22 $166.07 $137.22 $0.47 0.34% $-28.85 -17.37% 0.00% 100.10%" [ref=e755]:
+            - cell "EAT" [ref=e756]:
+              - link "EAT" [ref=e757] [cursor=pointer]:
+                - /url: "#"
+            - cell "BRINKER INTL INC" [ref=e758]:
+              - generic "BRINKER INTL INC" [ref=e759]
+            - cell "1.0000" [ref=e760]
+            - cell "$137.22" [ref=e761]
+            - cell "$166.07" [ref=e762]
+            - cell "$137.22" [ref=e763]
+            - cell "$0.47 0.34%" [ref=e764]:
+              - text: $0.47
+              - text: 0.34%
+            - cell "$-28.85 -17.37%" [ref=e765]:
+              - text: $-28.85
+              - text: "-17.37%"
+            - cell "0.00%" [ref=e766]
+            - cell "100.10%" [ref=e767]
+          - row "ABNB AIRBNB INC CL A 1.0000 $132.85 $68.00 $132.85 $-0.82 -0.61% $64.85 95.37% 0.00% 100.10%" [ref=e768]:
+            - cell "ABNB" [ref=e769]:
+              - link "ABNB" [ref=e770] [cursor=pointer]:
+                - /url: "#"
+            - cell "AIRBNB INC CL A" [ref=e771]:
+              - generic "AIRBNB INC CL A" [ref=e772]
+            - cell "1.0000" [ref=e773]
+            - cell "$132.85" [ref=e774]
+            - cell "$68.00" [ref=e775]
+            - cell "$132.85" [ref=e776]
+            - cell "$-0.82 -0.61%" [ref=e777]:
+              - text: $-0.82
+              - text: "-0.61%"
+            - cell "$64.85 95.37%" [ref=e778]:
+              - text: $64.85
+              - text: 95.37%
+            - cell "0.00%" [ref=e779]
+            - cell "100.10%" [ref=e780]
+          - row "VOD VODAFONE GROUP PLC SHS 9.0000 $14.68 $97.47 $132.12 $-0.80 -0.60% $34.65 35.55% 0.00% 100.10%" [ref=e781]:
+            - cell "VOD" [ref=e782]:
+              - link "VOD" [ref=e783] [cursor=pointer]:
+                - /url: "#"
+            - cell "VODAFONE GROUP PLC SHS" [ref=e784]:
+              - generic "VODAFONE GROUP PLC SHS" [ref=e785]
+            - cell "9.0000" [ref=e786]
+            - cell "$14.68" [ref=e787]
+            - cell "$97.47" [ref=e788]
+            - cell "$132.12" [ref=e789]
+            - cell "$-0.80 -0.60%" [ref=e790]:
+              - text: $-0.80
+              - text: "-0.60%"
+            - cell "$34.65 35.55%" [ref=e791]:
+              - text: $34.65
+              - text: 35.55%
+            - cell "0.00%" [ref=e792]
+            - cell "100.10%" [ref=e793]
+          - row "TV GRUPO TELEVISA SA ADR 45.0000 $2.85 $98.10 $128.25 $0.03 0.02% $30.15 30.73% 0.00% 100.10%" [ref=e794]:
+            - cell "TV" [ref=e795]:
+              - link "TV" [ref=e796] [cursor=pointer]:
+                - /url: "#"
+            - cell "GRUPO TELEVISA SA ADR" [ref=e797]:
+              - generic "GRUPO TELEVISA SA ADR" [ref=e798]
+            - cell "45.0000" [ref=e799]
+            - cell "$2.85" [ref=e800]
+            - cell "$98.10" [ref=e801]
+            - cell "$128.25" [ref=e802]
+            - cell "$0.03 0.02%" [ref=e803]:
+              - text: $0.03
+              - text: 0.02%
+            - cell "$30.15 30.73%" [ref=e804]:
+              - text: $30.15
+              - text: 30.73%
+            - cell "0.00%" [ref=e805]
+            - cell "100.10%" [ref=e806]
+          - row "XIFR XPLR INFRASTRUCTURE LP 10.0000 $11.08 $93.70 $110.80 $-0.39 -0.35% $17.10 18.25% 0.00% 100.10%" [ref=e807]:
+            - cell "XIFR" [ref=e808]:
+              - link "XIFR" [ref=e809] [cursor=pointer]:
+                - /url: "#"
+            - cell "XPLR INFRASTRUCTURE LP" [ref=e810]:
+              - generic "XPLR INFRASTRUCTURE LP" [ref=e811]
+            - cell "10.0000" [ref=e812]
+            - cell "$11.08" [ref=e813]
+            - cell "$93.70" [ref=e814]
+            - cell "$110.80" [ref=e815]
+            - cell "$-0.39 -0.35%" [ref=e816]:
+              - text: $-0.39
+              - text: "-0.35%"
+            - cell "$17.10 18.25%" [ref=e817]:
+              - text: $17.10
+              - text: 18.25%
+            - cell "0.00%" [ref=e818]
+            - cell "100.10%" [ref=e819]
+          - row "BGS B & G FOODS INC NEW 23.0000 $4.17 $97.06 $95.91 $-0.10 -0.10% $-1.15 -1.18% 0.00% 100.10%" [ref=e820]:
+            - cell "BGS" [ref=e821]:
+              - link "BGS" [ref=e822] [cursor=pointer]:
+                - /url: "#"
+            - cell "B & G FOODS INC NEW" [ref=e823]:
+              - generic "B & G FOODS INC NEW" [ref=e824]
+            - cell "23.0000" [ref=e825]
+            - cell "$4.17" [ref=e826]
+            - cell "$97.06" [ref=e827]
+            - cell "$95.91" [ref=e828]
+            - cell "$-0.10 -0.10%" [ref=e829]:
+              - text: $-0.10
+              - text: "-0.10%"
+            - cell "$-1.15 -1.18%" [ref=e830]:
+              - text: $-1.15
+              - text: "-1.18%"
+            - cell "0.00%" [ref=e831]
+            - cell "100.10%" [ref=e832]
+          - row "BHC BAUSCH HEALTH COMPANIES 15.0000 $5.42 $96.30 $81.30 $-0.03 -0.04% $-15.00 -15.58% 0.00% 100.11%" [ref=e833]:
+            - cell "BHC" [ref=e834]:
+              - link "BHC" [ref=e835] [cursor=pointer]:
+                - /url: "#"
+            - cell "BAUSCH HEALTH COMPANIES" [ref=e836]:
+              - generic "BAUSCH HEALTH COMPANIES" [ref=e837]
+            - cell "15.0000" [ref=e838]
+            - cell "$5.42" [ref=e839]
+            - cell "$96.30" [ref=e840]
+            - cell "$81.30" [ref=e841]
+            - cell "$-0.03 -0.04%" [ref=e842]:
+              - text: $-0.03
+              - text: "-0.04%"
+            - cell "$-15.00 -15.58%" [ref=e843]:
+              - text: $-15.00
+              - text: "-15.58%"
+            - cell "0.00%" [ref=e844]
+            - cell "100.11%" [ref=e845]
+          - row "OPFI OPPFI INC 8.0000 $8.61 $100.16 $68.88 $-0.31 -0.45% $-31.28 -31.23% 0.00% 100.11%" [ref=e846]:
+            - cell "OPFI" [ref=e847]:
+              - link "OPFI" [ref=e848] [cursor=pointer]:
+                - /url: "#"
+            - cell "OPPFI INC" [ref=e849]:
+              - generic "OPPFI INC" [ref=e850]
+            - cell "8.0000" [ref=e851]
+            - cell "$8.61" [ref=e852]
+            - cell "$100.16" [ref=e853]
+            - cell "$68.88" [ref=e854]
+            - cell "$-0.31 -0.45%" [ref=e855]:
+              - text: $-0.31
+              - text: "-0.45%"
+            - cell "$-31.28 -31.23%" [ref=e856]:
+              - text: $-31.28
+              - text: "-31.23%"
+            - cell "0.00%" [ref=e857]
+            - cell "100.11%" [ref=e858]
+          - row "NVNI NVNI GROUP LTD 28.0000 $1.16 $98.00 $32.48 $0.01 0.03% $-65.52 -66.86% 0.00% 100.11%" [ref=e859]:
+            - cell "NVNI" [ref=e860]:
+              - link "NVNI" [ref=e861] [cursor=pointer]:
+                - /url: "#"
+            - cell "NVNI GROUP LTD" [ref=e862]:
+              - generic "NVNI GROUP LTD" [ref=e863]
+            - cell "28.0000" [ref=e864]
+            - cell "$1.16" [ref=e865]
+            - cell "$98.00" [ref=e866]
+            - cell "$32.48" [ref=e867]
+            - cell "$0.01 0.03%" [ref=e868]:
+              - text: $0.01
+              - text: 0.03%
+            - cell "$-65.52 -66.86%" [ref=e869]:
+              - text: $-65.52
+              - text: "-66.86%"
+            - cell "0.00%" [ref=e870]
+            - cell "100.11%" [ref=e871]
+          - row "HIMS HIMS & HERS HEALTH INC COM CL A 1.0000 $25.05 $29.96 $25.05 $0.81 3.34% $-4.91 -16.39% 0.00% 100.11%" [ref=e872]:
+            - cell "HIMS" [ref=e873]:
+              - link "HIMS" [ref=e874] [cursor=pointer]:
+                - /url: "#"
+            - cell "HIMS & HERS HEALTH INC COM CL A" [ref=e875]:
+              - generic "HIMS & HERS HEALTH INC COM CL A" [ref=e876]
+            - cell "1.0000" [ref=e877]
+            - cell "$25.05" [ref=e878]
+            - cell "$29.96" [ref=e879]
+            - cell "$25.05" [ref=e880]
+            - cell "$0.81 3.34%" [ref=e881]:
+              - text: $0.81
+              - text: 3.34%
+            - cell "$-4.91 -16.39%" [ref=e882]:
+              - text: $-4.91
+              - text: "-16.39%"
+            - cell "0.00%" [ref=e883]
+            - cell "100.11%" [ref=e884]
+          - row "PNXP PINAPPLE EXPRESS CANNABIS COMP COM 12300.0000 $0.00 $99.63 $21.28 $0.00 0.00% $-85.30 -85.62% 0.00% 100.11%" [ref=e885]:
+            - cell "PNXP" [ref=e886]:
+              - link "PNXP" [ref=e887] [cursor=pointer]:
+                - /url: "#"
+            - cell "PINAPPLE EXPRESS CANNABIS COMP COM" [ref=e888]:
+              - generic "PINAPPLE EXPRESS CANNABIS COMP COM" [ref=e889]
+            - cell "12300.0000" [ref=e890]
+            - cell "$0.00" [ref=e891]
+            - cell "$99.63" [ref=e892]
+            - cell "$21.28" [ref=e893]
+            - cell "$0.00 0.00%" [ref=e894]:
+              - text: $0.00
+              - text: 0.00%
+            - cell "$-85.30 -85.62%" [ref=e895]:
+              - text: $-85.30
+              - text: "-85.62%"
+            - cell "0.00%" [ref=e896]
+            - cell "100.11%" [ref=e897]
+          - row "SWGAY SWATCH GROUP AG UNSPOND 1.0000 $13.01 $9.02 $13.01 $-0.02 -0.15% $3.99 44.24% 0.00% 100.11%" [ref=e898]:
+            - cell "SWGAY" [ref=e899]:
+              - link "SWGAY" [ref=e900] [cursor=pointer]:
+                - /url: "#"
+            - cell "SWATCH GROUP AG UNSPOND" [ref=e901]:
+              - generic "SWATCH GROUP AG UNSPOND" [ref=e902]
+            - cell "1.0000" [ref=e903]
+            - cell "$13.01" [ref=e904]
+            - cell "$9.02" [ref=e905]
+            - cell "$13.01" [ref=e906]
+            - cell "$-0.02 -0.15%" [ref=e907]:
+              - text: $-0.02
+              - text: "-0.15%"
+            - cell "$3.99 44.24%" [ref=e908]:
+              - text: $3.99
+              - text: 44.24%
+            - cell "0.00%" [ref=e909]
+            - cell "100.11%" [ref=e910]
+          - row "CHGG CHEGG INC 10.0000 $1.02 $8.00 $10.20 $-0.03 -0.29% $2.20 27.50% 0.00% 100.11%" [ref=e911]:
+            - cell "CHGG" [ref=e912]:
+              - link "CHGG" [ref=e913] [cursor=pointer]:
+                - /url: "#"
+            - cell "CHEGG INC" [ref=e914]:
+              - generic "CHEGG INC" [ref=e915]
+            - cell "10.0000" [ref=e916]
+            - cell "$1.02" [ref=e917]
+            - cell "$8.00" [ref=e918]
+            - cell "$10.20" [ref=e919]
+            - cell "$-0.03 -0.29%" [ref=e920]:
+              - text: $-0.03
+              - text: "-0.29%"
+            - cell "$2.20 27.50%" [ref=e921]:
+              - text: $2.20
+              - text: 27.50%
+            - cell "0.00%" [ref=e922]
+            - cell "100.11%" [ref=e923]
+          - row "VFF VILLAGE FARMS INTL INC US LISTED 1.0000 $2.61 $2.91 $2.61 $-0.03 -1.14% $-0.30 -10.31% 0.00% 100.11%" [ref=e924]:
+            - cell "VFF" [ref=e925]:
+              - link "VFF" [ref=e926] [cursor=pointer]:
+                - /url: "#"
+            - cell "VILLAGE FARMS INTL INC US LISTED" [ref=e927]:
+              - generic "VILLAGE FARMS INTL INC US LISTED" [ref=e928]
+            - cell "1.0000" [ref=e929]
+            - cell "$2.61" [ref=e930]
+            - cell "$2.91" [ref=e931]
+            - cell "$2.61" [ref=e932]
+            - cell "$-0.03 -1.14%" [ref=e933]:
+              - text: $-0.03
+              - text: "-1.14%"
+            - cell "$-0.30 -10.31%" [ref=e934]:
+              - text: $-0.30
+              - text: "-10.31%"
+            - cell "0.00%" [ref=e935]
+            - cell "100.11%" [ref=e936]
+          - row "QQQM#Q1526C285000 PUT QQQM 285.00 EXP 05-15-26 -1.0000 $2.50 $-99.34 $-2.50 $-0.03 1.01% $96.84 -97.48% -0.00% 100.11%" [ref=e937]:
+            - cell "QQQM#Q1526C285000" [ref=e938]:
+              - link "QQQM#Q1526C285000" [ref=e939] [cursor=pointer]:
+                - /url: "#"
+            - cell "PUT QQQM 285.00 EXP 05-15-26" [ref=e940]:
+              - generic "PUT QQQM 285.00 EXP 05-15-26" [ref=e941]
+            - cell "-1.0000" [ref=e942]
+            - cell "$2.50" [ref=e943]
+            - cell "$-99.34" [ref=e944]
+            - cell "$-2.50" [ref=e945]
+            - cell "$-0.03 1.01%" [ref=e946]:
+              - text: $-0.03
+              - text: 1.01%
+            - cell "$96.84 -97.48%" [ref=e947]:
+              - text: $96.84
+              - text: "-97.48%"
+            - cell "-0.00%" [ref=e948]
+            - cell "100.11%" [ref=e949]
+          - row "BRKB#E1526C485000 CALL BRKB 485.00 EXP 05-15-26 -5.0000 $2.00 $-546.74 $-10.00 $-1.33 15.34% $536.74 -98.17% -0.00% 100.11%" [ref=e950]:
+            - cell "BRKB#E1526C485000" [ref=e951]:
+              - link "BRKB#E1526C485000" [ref=e952] [cursor=pointer]:
+                - /url: "#"
+            - cell "CALL BRKB 485.00 EXP 05-15-26" [ref=e953]:
+              - generic "CALL BRKB 485.00 EXP 05-15-26" [ref=e954]
+            - cell "-5.0000" [ref=e955]
+            - cell "$2.00" [ref=e956]
+            - cell "$-546.74" [ref=e957]
+            - cell "$-10.00" [ref=e958]
+            - cell "$-1.33 15.34%" [ref=e959]:
+              - text: $-1.33
+              - text: 15.34%
+            - cell "$536.74 -98.17%" [ref=e960]:
+              - text: $536.74
+              - text: "-98.17%"
+            - cell "-0.00%" [ref=e961]
+            - cell "100.11%" [ref=e962]
+          - row "VGT#Q1526C110000 PUT VGT 110.00 EXP 05-15-26 -1.0000 $10.00 $-31.34 $-10.00 $0.00 0.00% $21.34 -68.09% -0.00% 100.11%" [ref=e963]:
+            - cell "VGT#Q1526C110000" [ref=e964]:
+              - link "VGT#Q1526C110000" [ref=e965] [cursor=pointer]:
+                - /url: "#"
+            - cell "PUT VGT 110.00 EXP 05-15-26" [ref=e966]:
+              - generic "PUT VGT 110.00 EXP 05-15-26" [ref=e967]
+            - cell "-1.0000" [ref=e968]
+            - cell "$10.00" [ref=e969]
+            - cell "$-31.34" [ref=e970]
+            - cell "$-10.00" [ref=e971]
+            - cell "$0.00 0.00%" [ref=e972]:
+              - text: $0.00
+              - text: 0.00%
+            - cell "$21.34 -68.09%" [ref=e973]:
+              - text: $21.34
+              - text: "-68.09%"
+            - cell "-0.00%" [ref=e974]
+            - cell "100.11%" [ref=e975]
+          - row "VOO#E1526C682500 CALL VOO 682.5 EXP 05-15-26 -3.0000 $5.00 $-385.04 $-15.00 $-5.89 64.65% $370.04 -96.10% -0.00% 100.11%" [ref=e976]:
+            - cell "VOO#E1526C682500" [ref=e977]:
+              - link "VOO#E1526C682500" [ref=e978] [cursor=pointer]:
+                - /url: "#"
+            - cell "CALL VOO 682.5 EXP 05-15-26" [ref=e979]:
+              - generic "CALL VOO 682.5 EXP 05-15-26" [ref=e980]
+            - cell "-3.0000" [ref=e981]
+            - cell "$5.00" [ref=e982]
+            - cell "$-385.04" [ref=e983]
+            - cell "$-15.00" [ref=e984]
+            - cell "$-5.89 64.65%" [ref=e985]:
+              - text: $-5.89
+              - text: 64.65%
+            - cell "$370.04 -96.10%" [ref=e986]:
+              - text: $370.04
+              - text: "-96.10%"
+            - cell "-0.00%" [ref=e987]
+            - cell "100.11%" [ref=e988]
+          - row "BAC#E2226D510000 CALL BAC 51.00 EXP 05-22-26 -3.0000 $25.50 $-61.04 $-76.50 $-0.17 0.23% $-15.46 25.33% -0.00% 100.11%" [ref=e989]:
+            - cell "BAC#E2226D510000" [ref=e990]:
+              - link "BAC#E2226D510000" [ref=e991] [cursor=pointer]:
+                - /url: "#"
+            - cell "CALL BAC 51.00 EXP 05-22-26" [ref=e992]:
+              - generic "CALL BAC 51.00 EXP 05-22-26" [ref=e993]
+            - cell "-3.0000" [ref=e994]
+            - cell "$25.50" [ref=e995]
+            - cell "$-61.04" [ref=e996]
+            - cell "$-76.50" [ref=e997]
+            - cell "$-0.17 0.23%" [ref=e998]:
+              - text: $-0.17
+              - text: 0.23%
+            - cell "$-15.46 25.33%" [ref=e999]:
+              - text: $-15.46
+              - text: 25.33%
+            - cell "-0.00%" [ref=e1000]
+            - cell "100.11%" [ref=e1001]
+          - row "ZETA#E1526D170000 CALL ZETA 17.00 EXP 05-15-26 -12.0000 $24.00 $-352.19 $-288.00 $0.16 -0.06% $64.19 -18.23% -0.00% 100.10%" [ref=e1002]:
+            - cell "ZETA#E1526D170000" [ref=e1003]:
+              - link "ZETA#E1526D170000" [ref=e1004] [cursor=pointer]:
+                - /url: "#"
+            - cell "CALL ZETA 17.00 EXP 05-15-26" [ref=e1005]:
+              - generic "CALL ZETA 17.00 EXP 05-15-26" [ref=e1006]
+            - cell "-12.0000" [ref=e1007]
+            - cell "$24.00" [ref=e1008]
+            - cell "$-352.19" [ref=e1009]
+            - cell "$-288.00" [ref=e1010]
+            - cell "$0.16 -0.06%" [ref=e1011]:
+              - text: $0.16
+              - text: "-0.06%"
+            - cell "$64.19 -18.23%" [ref=e1012]:
+              - text: $64.19
+              - text: "-18.23%"
+            - cell "-0.00%" [ref=e1013]
+            - cell "100.10%" [ref=e1014]
+          - row "USD_CASH ML DIRECT DEPOSIT PROGRM -7532.5100 $1.00 $-7,532.51 $-7,532.51 $0.00 0.00% $0.00 0.00% -0.10% 100.00%" [ref=e1015]:
+            - cell "USD_CASH" [ref=e1016]:
+              - link "USD_CASH" [ref=e1017] [cursor=pointer]:
+                - /url: "#"
+            - cell "ML DIRECT DEPOSIT PROGRM" [ref=e1018]:
+              - generic "ML DIRECT DEPOSIT PROGRM" [ref=e1019]
+            - cell "-7532.5100" [ref=e1020]
+            - cell "$1.00" [ref=e1021]
+            - cell "$-7,532.51" [ref=e1022]
+            - cell "$-7,532.51" [ref=e1023]
+            - cell "$0.00 0.00%" [ref=e1024]:
+              - text: $0.00
+              - text: 0.00%
+            - cell "$0.00 0.00%" [ref=e1025]:
+              - text: $0.00
+              - text: 0.00%
+            - cell "-0.10%" [ref=e1026]
+            - cell "100.00%" [ref=e1027]
+    - contentinfo [ref=e1028]: Generated at 2026-05-16 11:00:53
+  - img [ref=e1029]
