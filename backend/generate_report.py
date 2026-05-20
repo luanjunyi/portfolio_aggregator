@@ -43,9 +43,29 @@ def generate_report():
             print("No historical data found.")
             chart_html = "<div class='alert alert-info'>No historical data available yet.</div>"
         else:
+            # Calculate Total Return and CAGR
+            df_history['date_obj'] = pd.to_datetime(df_history['date'])
+            first_date = df_history['date_obj'].min()
+            last_date = df_history['date_obj'].max()
+            
+            latest_val = df_history.iloc[-1]['total_value']
+            earliest_val = df_history.iloc[0]['total_value']
+            
+            total_return = (latest_val / earliest_val - 1) if earliest_val and earliest_val > 0 else 0
+            
+            days = (last_date - first_date).days
+            years = days / 365.25
+            
+            if years > 0 and earliest_val > 0 and latest_val > 0:
+                cagr = (latest_val / earliest_val) ** (1 / years) - 1
+            else:
+                cagr = 0
+                
+            title_str = f'Portfolio Value History (Total Return: {total_return*100:.2f}%, CAGR: {cagr*100:.2f}%)'
+
             # Create Plotly Chart
             fig = px.line(df_history, x='date', y=['total_value', 'total_cost_basis'], 
-                          title='Portfolio Value History',
+                          title=title_str,
                           labels={'value': 'Value ($)', 'date': 'Date', 'variable': 'Metric'},
                           template='plotly_white')
             
