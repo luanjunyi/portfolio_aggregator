@@ -31,9 +31,15 @@ class EtradeCrawler(BaseCrawler):
         """Scrape holdings from E*TRADE positions page"""
         self.log.info("Starting E*TRADE holdings scrape...")
 
-        self.log.info("Navigating to portfolio positions page...")
-        await self.page.goto(self.portfolio_url, wait_until='networkidle')
-        await self.page.wait_for_load_state('networkidle', timeout=15000)
+        # Only navigate if we're not already on the positions page
+        if "/portfolios/positions" not in (self.page.url or "").lower():
+            self.log.info("Navigating to portfolio positions page...")
+            await self.page.goto(self.portfolio_url, wait_until='domcontentloaded')
+        else:
+            self.log.info("Already on portfolio positions page, skipping navigation.")
+
+        # Wait for DOM to be ready; networkidle is unreliable on E*TRADE's SPA
+        await self.page.wait_for_load_state('domcontentloaded', timeout=15000)
 
 
         holdings = await self.parse_portfolio_html()
