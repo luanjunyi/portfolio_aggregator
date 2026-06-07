@@ -14,7 +14,7 @@ OUTPUT_DIR = "/Users/jluan/code/portfolio/frontend"
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "index.html")
 
 def fmt_money(val):
-    if val is None or pd.isna(val): return "$0.00"
+    if val is None or pd.isna(val): return "N/A"
     return f"${val:,.2f}"
 
 def fmt_pct(val):

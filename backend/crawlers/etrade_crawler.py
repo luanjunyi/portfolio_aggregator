@@ -129,6 +129,18 @@ class EtradeCrawler(BaseCrawler):
     async def _parse_positions_from_dom(self) -> List[Holding]:
         grid_selector = 'div[role="grid"][aria-label="Portfolios"]'
         row_selector = f"{grid_selector} div[role='row'][aria-rowindex]"
+
+        # The positions page defaults to a single account view ("All brokerage
+        # accounts" is NOT the default and, despite the name, is the only
+        # option that includes IRA accounts). Explicitly select it so we see
+        # every position.
+        await self.page.wait_for_selector('#accountDropdown', timeout=20000)
+        current = await self.page.eval_on_selector('#accountDropdown', 'el => el.value')
+        if current != 'all-All brokerage accounts':
+            await self.page.select_option('#accountDropdown', value='all-All brokerage accounts')
+            # Wait for the grid to be torn down and rebuilt for the new view.
+            await asyncio.sleep(5)
+
         # Wait for the grid to be loaded by React
         await self.page.wait_for_selector(row_selector, timeout=20000)
 

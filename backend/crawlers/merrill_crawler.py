@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import asyncio
 import re
 import random
@@ -149,14 +149,16 @@ class MerrillCrawler(BaseCrawler):
                     if 'balances' in symbol_preview:
                         self.log.info("Reached balances section, skipping this row")
                         continue
+                    if symbol_preview == 'total':
+                        continue
                 
                 # Check if this is a pending activity row
                 try:
                     pending_value = self._parse_pending_activity_row(row)
                     if pending_value is not None:
                         pending_activity = pending_value
-                        self.log.info(f"Found pending activity: ${pending_activity}, this should be the last in current account table")
-                        break # This is always the last row
+                        self.log.info(f"Found pending activity: ${pending_activity}")
+                        continue
                 except Exception as e:
                     self.log.debug(f"Row is not pending activity: {e}")
                 
@@ -170,6 +172,16 @@ class MerrillCrawler(BaseCrawler):
                         continue  # Not necessarily the last row, the last row could be pending activity
                 except Exception as e:
                     self.log.debug(f"Row is not a cash position: {e}")
+
+                try:
+                    margin_holding = self._parse_margin_balance_row(row)
+                    if margin_holding:
+                        holdings.append(margin_holding)
+                        table_holdings.append(margin_holding)
+                        self.log.info("Found and parsed margin balance")
+                        continue
+                except Exception as e:
+                    self.log.debug(f"Row is not a margin balance: {e}")
                 
                 # This must be after parsing cash row and pending activity row
                 try:
@@ -226,7 +238,9 @@ class MerrillCrawler(BaseCrawler):
             if not description:
                 raise ValueError(f"Missing description for symbol {symbol}")
 
-            day_change_dollars = self._extract_dollar_change(cells[3])
+            # Merrill's day-change column reports the change PER SHARE, not the
+            # total position change, so scale it by quantity below.
+            day_change_per_share = self._extract_dollar_change(cells[3])
             day_change_percent = self._extract_percentage_change(cells[3])
 
             price = self._clean_decimal_text(cells[4].get_text(" ", strip=True))
@@ -234,12 +248,16 @@ class MerrillCrawler(BaseCrawler):
             if quantity == 0:
                 self.log.warning(f"Found position with zero quantity: {symbol}, maybe pending clearance.")
                 return None
-            unit_cost = self._clean_decimal_text(cells[6].get_text(strip=True))
-            cost_basis = self._clean_decimal_text(cells[7].get_text(strip=True))
+            day_change_dollars = day_change_per_share * quantity
             current_value = self._clean_decimal_text(cells[8].get_text(strip=True))
+            # Merrill can show real unsettled holdings with "--" for cost fields
+            # during option assignment settlement. Keep the market value, but
+            # preserve unknown cost/unrealized values as None instead of using 0.
+            unit_cost = self._clean_optional_decimal_text(cells[6].get_text(strip=True))
+            cost_basis = self._clean_optional_decimal_text(cells[7].get_text(strip=True))
 
-            unrealized_gain_loss = self._extract_dollar_change(cells[9])
-            unrealized_gain_loss_percent = self._extract_percentage_change(cells[9])
+            unrealized_gain_loss = self._extract_optional_dollar_change(cells[9])
+            unrealized_gain_loss_percent = self._extract_optional_percentage_change(cells[9])
 
             portfolio_percentage = None
             portfolio_text = cells[10].get_text(strip=True)
@@ -347,6 +365,36 @@ class MerrillCrawler(BaseCrawler):
             self.log.debug(f"Error parsing cash row: {e}")
             return None
 
+    def _parse_margin_balance_row(self, row) -> Holding:
+        """Parse Merrill margin balance because it is included in account total."""
+        cells = row.find_all('td')
+        if len(cells) < 9:
+            return None
+
+        first_cell_text = cells[0].get_text(strip=True).lower()
+        if first_cell_text != "margin balance":
+            return None
+
+        value_text = cells[8].get_text(strip=True)
+        if not value_text or value_text == '--':
+            return None
+
+        current_value = self._clean_decimal_text(value_text)
+        return Holding(
+            symbol="USD_MARGIN_BALANCE",
+            description="Margin balance",
+            quantity=current_value,
+            price=1.00,
+            unit_cost=1.00,
+            cost_basis=current_value,
+            current_value=current_value,
+            day_change_percent=0.00,
+            day_change_dollars=0.00,
+            unrealized_gain_loss=0.00,
+            unrealized_gain_loss_percent=0.00,
+            brokers={self.broker_name: current_value}
+        )
+
     def sanity_check(self, table, table_holdings: List[Holding]) -> bool:
         """Compare reported totals within a single table against parsed holdings."""
         TOTAL_CHECK_TOLERANCE = 0.01
@@ -359,7 +407,11 @@ class MerrillCrawler(BaseCrawler):
         reported_unrealized_gain = total_row['unrealized_gain_loss']
 
         computed_total_value = sum(holding.current_value for holding in table_holdings)
-        computed_unrealized_gain = sum(holding.unrealized_gain_loss for holding in table_holdings)
+        computed_unrealized_gain = sum(
+            holding.unrealized_gain_loss
+            for holding in table_holdings
+            if holding.unrealized_gain_loss is not None
+        )
 
         value_diff = computed_total_value - reported_total_value
         unrealized_diff = computed_unrealized_gain - reported_unrealized_gain
@@ -369,7 +421,7 @@ class MerrillCrawler(BaseCrawler):
                 f"Total value mismatch: holdings {computed_total_value} vs reported {reported_total_value}"
             )
 
-        if abs(unrealized_diff) / reported_unrealized_gain > TOTAL_CHECK_TOLERANCE:
+        if abs(unrealized_diff) / max(abs(reported_unrealized_gain), 1.0) > TOTAL_CHECK_TOLERANCE:
             raise RuntimeError(
                 "Unrealized gain mismatch: holdings "
                 f"{computed_unrealized_gain} vs reported {reported_unrealized_gain}"
@@ -422,12 +474,38 @@ class MerrillCrawler(BaseCrawler):
             return 0.0
         return self._clean_decimal_text(text)
 
+    def _extract_optional_dollar_change(self, cell) -> Optional[float]:
+        target = cell.find('div', class_=lambda value: value and 'dol' in value.split())
+        text = (target.get_text(strip=True) if target else cell.get_text(strip=True))
+        return self._clean_optional_decimal_text(text)
+
     def _extract_percentage_change(self, cell) -> float:
         target = cell.find('div', class_=lambda value: value and 'per' in value.split())
         text = (target.get_text(strip=True) if target else cell.get_text(strip=True))
         if not text:
             return 0.0
         return self._clean_percentage_text(text)
+
+    def _extract_optional_percentage_change(self, cell) -> Optional[float]:
+        target = cell.find('div', class_=lambda value: value and 'per' in value.split())
+        text = (target.get_text(strip=True) if target else cell.get_text(strip=True))
+        return self._clean_optional_percentage_text(text)
+
+    def _clean_optional_decimal_text(self, value_str: str) -> Optional[float]:
+        if not value_str:
+            return None
+        value_str = value_str.strip()
+        if value_str in {"--", "-- --"}:
+            return None
+        return self._clean_decimal_text(value_str)
+
+    def _clean_optional_percentage_text(self, value_str: str) -> Optional[float]:
+        if not value_str:
+            return None
+        value_str = value_str.strip()
+        if value_str in {"--", "-- --"}:
+            return None
+        return self._clean_percentage_text(value_str)
     
     def _clean_decimal_text(self, value_str: str) -> float:
         """Clean text and extract decimal value, handling Merrill-specific formatting"""
@@ -533,28 +611,32 @@ class MerrillCrawler(BaseCrawler):
         
         # Aggregate quantities and values
         total_quantity = sum(h.quantity for h in holdings)
-        total_cost_basis = sum(h.cost_basis for h in holdings)
+        cost_basis_values = [h.cost_basis for h in holdings]
+        total_cost_basis = None if any(value is None for value in cost_basis_values) else sum(cost_basis_values)
         total_current_value = sum(h.current_value for h in holdings)
         total_day_change_dollars = sum(h.day_change_dollars for h in holdings)
-        total_unrealized_gain_loss = sum(h.unrealized_gain_loss for h in holdings)
+        unrealized_values = [h.unrealized_gain_loss for h in holdings]
+        total_unrealized_gain_loss = None if any(value is None for value in unrealized_values) else sum(unrealized_values)
         
         # Calculate weighted averages and derived values
         if total_quantity != 0:
             weighted_avg_price = total_current_value / total_quantity
-            weighted_avg_unit_cost = total_cost_basis / total_quantity
+            weighted_avg_unit_cost = None if total_cost_basis is None else total_cost_basis / total_quantity
         else:
             weighted_avg_price = 0.0
-            weighted_avg_unit_cost = 0.0
+            weighted_avg_unit_cost = None
         
         # Calculate percentages
         day_change_percent = 0.0
-        unrealized_gain_loss_percent = 0.0
+        unrealized_gain_loss_percent = None
         
         if total_current_value != 0:
             day_change_percent = total_day_change_dollars / (total_current_value - total_day_change_dollars)
         
-        if total_cost_basis != 0:
+        if total_cost_basis not in (None, 0) and total_unrealized_gain_loss is not None:
             unrealized_gain_loss_percent = total_unrealized_gain_loss / total_cost_basis
+        elif total_cost_basis == 0 and total_unrealized_gain_loss is not None:
+            unrealized_gain_loss_percent = 0.0
         
         # Sum portfolio percentages if available
         portfolio_percentage = None

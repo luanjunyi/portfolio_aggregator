@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime
-from typing import Dict, Iterable, List, Sequence, Tuple, Type
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Type
 
 # Set up logging
 log = logging.getLogger(__name__)
@@ -33,6 +33,13 @@ def _float_sum(values: Iterable[float]) -> float:
     return sum(values, 0.0)
 
 
+def _optional_float_sum(values: Iterable[Optional[float]]) -> Optional[float]:
+    value_list = list(values)
+    if any(value is None for value in value_list):
+        return None
+    return sum(value_list, 0.0)
+
+
 def _merge_broker_maps(holdings: Iterable[Holding]) -> Dict[str, float]:
     merged: Dict[str, float] = {}
     for holding in holdings:
@@ -49,25 +56,28 @@ def _combine_symbol_group(symbol: str, holdings: Sequence[Holding]) -> Holding:
     base = holdings[0]
 
     total_quantity = _float_sum(h.quantity for h in holdings)
-    total_cost_basis = _float_sum(h.cost_basis for h in holdings)
+    total_cost_basis = _optional_float_sum(h.cost_basis for h in holdings)
     total_current_value = _float_sum(h.current_value for h in holdings)
     total_day_change_dollars = _float_sum(h.day_change_dollars for h in holdings)
-    total_unrealized_gain_loss = _float_sum(h.unrealized_gain_loss for h in holdings)
+    total_unrealized_gain_loss = _optional_float_sum(h.unrealized_gain_loss for h in holdings)
 
     weighted_price = 0.0
-    weighted_unit_cost = 0.0
+    weighted_unit_cost = None
     if total_quantity != 0:
         weighted_price = total_current_value / total_quantity
-        weighted_unit_cost = total_cost_basis / total_quantity
+        if total_cost_basis is not None:
+            weighted_unit_cost = total_cost_basis / total_quantity
 
     day_change_percent = 0.0
     prior_value = total_current_value - total_day_change_dollars
     if prior_value != 0:
         day_change_percent = total_day_change_dollars / prior_value
 
-    unrealized_gain_loss_percent = 0.0
-    if total_cost_basis != 0:
+    unrealized_gain_loss_percent = None
+    if total_cost_basis not in (None, 0) and total_unrealized_gain_loss is not None:
         unrealized_gain_loss_percent = total_unrealized_gain_loss / total_cost_basis
+    elif total_cost_basis == 0 and total_unrealized_gain_loss is not None:
+        unrealized_gain_loss_percent = 0.0
 
     combined_brokers = _merge_broker_maps(holdings)
 
@@ -133,11 +143,11 @@ async def fetch_all_positions() -> Portfolio:
     holdings_with_percentages = _assign_portfolio_percentages(combined_holdings)
 
     total_value = _float_sum(h.current_value for h in holdings_with_percentages)
-    total_cost_basis = _float_sum(h.cost_basis for h in holdings_with_percentages)
-    total_unrealized = _float_sum(h.unrealized_gain_loss for h in holdings_with_percentages)
+    total_cost_basis = _optional_float_sum(h.cost_basis for h in holdings_with_percentages)
+    total_unrealized = _optional_float_sum(h.unrealized_gain_loss for h in holdings_with_percentages)
 
-    total_unrealized_percent = 0.0
-    if total_cost_basis != 0:
+    total_unrealized_percent = None
+    if total_cost_basis not in (None, 0) and total_unrealized is not None:
         total_unrealized_percent = total_unrealized / total_cost_basis
 
     total_day_change_dollars = _float_sum(h.day_change_dollars for h in holdings_with_percentages)

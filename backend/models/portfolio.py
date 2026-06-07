@@ -12,13 +12,13 @@ class Holding(BaseModel):
     description: str
     quantity: float
     price: float
-    unit_cost: float
-    cost_basis: float
+    unit_cost: Optional[float]
+    cost_basis: Optional[float]
     current_value: float
     day_change_percent: float
     day_change_dollars: float
-    unrealized_gain_loss: float
-    unrealized_gain_loss_percent: float
+    unrealized_gain_loss: Optional[float]
+    unrealized_gain_loss_percent: Optional[float]
     portfolio_percentage: Optional[float] = None
     brokers: Dict[str, float] = Field(default_factory=dict)
 
@@ -27,9 +27,9 @@ class Portfolio(BaseModel):
     """Aggregated portfolio data from all brokers"""
     holdings: List[Holding]
     total_value: float
-    total_cost_basis: float
-    total_unrealized_gain_loss: float
-    total_unrealized_gain_loss_percent: float
+    total_cost_basis: Optional[float]
+    total_unrealized_gain_loss: Optional[float]
+    total_unrealized_gain_loss_percent: Optional[float]
     last_updated: datetime
     day_change_percent: float
     day_change_dollars: float
