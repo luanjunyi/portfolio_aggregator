@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Dashboard{% if not empty %} - {{ date }}{% endif %}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='tags.css') }}" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; padding-bottom: 40px; }
+        .metric-card { transition: transform 0.2s; border: none; }
+        .metric-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; }
+        .metric-value { font-size: 1.75rem; font-weight: 700; }
+        .table-holdings th { background-color: #f1f3f5; font-size: 0.85rem; text-transform: uppercase; color: #495057; }
+        .table-holdings td { vertical-align: middle; }
+        .desc-col { max-width: 12ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: middle; }
+        th.sortable { cursor: pointer; user-select: none; position: relative; padding-right: 1.5rem !important; }
+        th.sortable::after { content: "\2195"; position: absolute; right: 0.5rem; color: #ccc; }
+        th.sortable.sorted-asc::after { content: "\2191"; color: #000; }
+        th.sortable.sorted-desc::after { content: "\2193"; color: #000; }
+    </style>
+</head>
+<body data-script-root="{{ request.script_root }}">
+    <div class="container py-4">
+        <header class="d-flex justify-content-between align-items-center mb-5 pb-3 border-bottom">
+            <h1 class="h3 m-0 text-primary">Portfolio Dashboard</h1>
+            {% if not empty %}<span class="badge bg-secondary fs-6">{{ date }}</span>{% endif %}
+        </header>
+
+        {% if empty %}
+        <div class="alert alert-info">No portfolio snapshots found in the database yet.</div>
+        {% else %}
+
+        <!-- Summary Cards -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-3">
+                <div class="card h-100 metric-card shadow-sm"><div class="card-body text-center">
+                    <div class="metric-label mb-2">Total Value</div>
+                    <div class="metric-value text-dark">{{ s.total_value }}</div>
+                </div></div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 metric-card shadow-sm"><div class="card-body text-center">
+                    <div class="metric-label mb-2">Day Change</div>
+                    <div class="metric-value {{ s.day_change_cls }}">{{ s.day_change }}</div>
+                    <div class="small {{ s.day_change_cls }}">{{ s.day_change_pct }}</div>
+                </div></div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 metric-card shadow-sm"><div class="card-body text-center">
+                    <div class="metric-label mb-2">Unrealized G/L</div>
+                    <div class="metric-value {{ s.unrealized_cls }}">{{ s.unrealized }}</div>
+                    <div class="small {{ s.unrealized_cls }}">{{ s.unrealized_pct }}</div>
+                </div></div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 metric-card shadow-sm"><div class="card-body text-center">
+                    <div class="metric-label mb-2">Cost Basis</div>
+                    <div class="metric-value text-secondary">{{ s.cost_basis }}</div>
+                </div></div>
+            </div>
+        </div>
+
+        <!-- History Chart -->
+        <div class="card shadow-sm mb-5 border-0"><div class="card-body p-0">
+            {{ chart_html | safe }}
+        </div></div>
+
+        <!-- Holdings Table -->
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="card-title m-0">Current Holdings</h5>
+                <button id="manageTagsBtn" type="button" class="btn btn-sm btn-outline-secondary">Manage tags</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-holdings mb-0" id="holdingsTable">
+                    <thead><tr>
+                        <th class="sortable" data-col="symbol" data-type="string">Symbol</th>
+                        <th id="tagsHeader" class="sortable" data-col="tags" data-type="string">
+                            <div class="d-flex flex-column" style="min-width: 160px;">
+                                <span>Tags</span>
+                                <select id="tagDimSelect" class="form-select form-select-sm mt-1"></select>
+                            </div>
+                        </th>
+                        <th class="sortable" data-col="description" data-type="string">Description</th>
+                        <th class="text-end sortable" data-col="qty" data-type="number">Qty</th>
+                        <th class="text-end sortable" data-col="price" data-type="number">Price</th>
+                        <th class="text-end sortable" data-col="base_value" data-type="number">Base Value</th>
+                        <th class="text-end sortable" data-col="value" data-type="number">Value</th>
+                        <th class="text-end sortable" data-col="day_change" data-type="number">Day Change</th>
+                        <th class="text-end sortable" data-col="unrealized" data-type="number">Unrealized G/L</th>
+                        <th class="text-end sortable" data-col="port" data-type="number">% Port</th>
+                        <th class="text-end" data-col="accum" title="Running cumulative % of portfolio, in the current row order">% Accum</th>
+                    </tr></thead>
+                    <tbody>
+                        {% for h in holdings %}
+                        <tr>
+                            <td class="fw-bold" data-sort-value="{{ h.symbol }}"><a href="#" class="symbol-link text-decoration-none" data-brokers="{{ h.brokers }}" data-price="{{ h.s_price }}">{{ h.symbol }}</a></td>
+                            <td class="tags-cell" data-symbol="{{ h.symbol }}"></td>
+                            <td data-sort-value="{{ h.description }}"><span class="desc-col" title="{{ h.description }}">{{ h.description }}</span></td>
+                            <td class="text-end" data-sort-value="{{ h.s_quantity }}">{{ h.quantity_disp }}</td>
+                            <td class="text-end" data-sort-value="{{ h.s_price }}">{{ h.price_disp }}</td>
+                            <td class="text-end" data-sort-value="{{ h.s_cost_basis }}">{{ h.cost_basis_disp }}</td>
+                            <td class="text-end fw-bold" data-sort-value="{{ h.s_value }}">{{ h.value_disp }}</td>
+                            <td class="text-end {{ h.day_change_cls }}" data-sort-value="{{ h.s_day_change }}">{{ h.day_change_disp }}<br><small>{{ h.day_change_pct_disp }}</small></td>
+                            <td class="text-end {{ h.unrealized_cls }}" data-sort-value="{{ h.s_unrealized }}">{{ h.unrealized_disp }}<br><small>{{ h.unrealized_pct_disp }}</small></td>
+                            <td class="text-end" data-sort-value="{{ h.s_port_pct }}">{{ h.port_pct_disp }}</td>
+                            <td class="text-end" data-sort-value="{{ h.s_accum_pct }}">{{ h.accum_pct_disp }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Broker Modal -->
+    <div class="modal fade" id="brokerModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-sm"><div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="brokerModalLabel">Positions</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="brokerModalBody"></div>
+      </div></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // % Accum is a running cumulative of % Port in the current row order.
+        // Columns are reorderable, so locate % Port / % Accum by data-col key,
+        // not a fixed index.
+        function colIndex(key) {
+            const ths = Array.from(document.querySelectorAll('#holdingsTable thead th'));
+            return ths.findIndex(th => th.dataset.col === key);
+        }
+        function recomputeAccum() {
+            const tbody = document.querySelector('#holdingsTable tbody');
+            if (!tbody) return;
+            const pi = colIndex('port'), ai = colIndex('accum');
+            if (pi < 0 || ai < 0) return;
+            let acc = 0;
+            tbody.querySelectorAll('tr').forEach(row => {
+                acc += parseFloat(row.children[pi].dataset.sortValue) || 0;
+                row.children[ai].textContent = (acc * 100).toFixed(2) + '%';
+            });
+        }
+
+        document.querySelectorAll('#holdingsTable th.sortable').forEach(th => {
+            th.addEventListener('click', (e) => {
+                // ignore clicks on header controls (e.g. the dimension dropdown)
+                if (e.target.closest('select, option, input, button')) return;
+                const table = th.closest('table');
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                const index = Array.from(th.parentNode.children).indexOf(th);
+                const isNumeric = th.dataset.type === 'number';
+                let asc = th.dataset.sortAsc === 'true';
+                table.querySelectorAll('th.sortable').forEach(el => {
+                    el.classList.remove('sorted-asc', 'sorted-desc');
+                    if (el !== th) el.dataset.sortAsc = '';
+                });
+                asc = !asc;
+                th.dataset.sortAsc = asc;
+                th.classList.add(asc ? 'sorted-asc' : 'sorted-desc');
+                rows.sort((a, b) => {
+                    let aVal = a.children[index].dataset.sortValue ?? a.children[index].innerText;
+                    let bVal = b.children[index].dataset.sortValue ?? b.children[index].innerText;
+                    if (isNumeric) {
+                        return asc ? (parseFloat(aVal) || 0) - (parseFloat(bVal) || 0)
+                                   : (parseFloat(bVal) || 0) - (parseFloat(aVal) || 0);
+                    }
+                    aVal = String(aVal).trim().toLowerCase();
+                    bVal = String(bVal).trim().toLowerCase();
+                    return asc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                });
+                tbody.append(...rows);
+                recomputeAccum();
+            });
+        });
+        recomputeAccum();  // initial pass for the default (value-desc) order
+
+        // --- drag headers to reorder columns -------------------------------
+        (function setupColumnDrag() {
+            const table = document.getElementById('holdingsTable');
+            if (!table || !table.tHead) return;
+            const headRow = table.tHead.rows[0];
+            let dragFrom = null;
+            function moveColumn(from, to) {
+                if (from === to || from == null || to < 0) return;
+                const move = (row) => {
+                    const cell = row.cells[from], ref = row.cells[to];
+                    if (from < to) ref.after(cell); else ref.before(cell);
+                };
+                move(headRow);
+                Array.from(table.tBodies[0].rows).forEach(move);
+                recomputeAccum();
+            }
+            Array.from(headRow.cells).forEach(th => {
+                th.draggable = true;
+                // let header controls (dimension dropdown) work without dragging
+                th.querySelectorAll('select, input').forEach(ctrl =>
+                    ctrl.addEventListener('mousedown', () => { th.draggable = false; }));
+                th.addEventListener('dragstart', (e) => {
+                    dragFrom = Array.from(headRow.cells).indexOf(th);
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', String(dragFrom));
+                });
+                th.addEventListener('dragover', (e) => { e.preventDefault(); th.classList.add('drag-over'); });
+                th.addEventListener('dragleave', () => th.classList.remove('drag-over'));
+                th.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    th.classList.remove('drag-over');
+                    const from = dragFrom != null ? dragFrom : parseInt(e.dataTransfer.getData('text/plain'), 10);
+                    moveColumn(from, Array.from(headRow.cells).indexOf(th));
+                    dragFrom = null;
+                });
+            });
+            document.addEventListener('mouseup', () =>
+                Array.from(headRow.cells).forEach(th => { th.draggable = true; }));
+        })();
+
+        const brokerModalEl = document.getElementById('brokerModal');
+        const brokerModal = brokerModalEl ? new bootstrap.Modal(brokerModalEl) : null;
+        document.querySelectorAll('.symbol-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const symbol = link.innerText;
+                let brokers = {};
+                try { brokers = JSON.parse(link.dataset.brokers); }
+                catch (err) { console.error('broker parse error', err, link.dataset.brokers); }
+                const price = parseFloat(link.dataset.price) || 0;
+                document.getElementById('brokerModalLabel').innerText = `Positions for ${symbol}`;
+                let html = '<div class="table-responsive"><table class="table table-sm table-bordered">';
+                html += '<thead><tr><th>Broker</th><th class="text-end">Units</th><th class="text-end">Value</th></tr></thead><tbody>';
+                if (Object.keys(brokers).length === 0) {
+                    html += '<tr><td colspan="3" class="text-muted text-center">No broker data available.</td></tr>';
+                } else {
+                    for (const [broker, val] of Object.entries(brokers)) {
+                        const units = price > 0 ? (val / price) : 0;
+                        const fUnits = units.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+                        const fVal = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+                        html += `<tr><td>${broker}</td><td class="text-end">${fUnits}</td><td class="text-end">${fVal}</td></tr>`;
+                    }
+                }
+                html += '</tbody></table></div>';
+                document.getElementById('brokerModalBody').innerHTML = html;
+                brokerModal.show();
+            });
+        });
+    </script>
+    <!-- Tag manager popover (CRUD for dimensions + tags); populated by tags.js -->
+    <div id="tagManager" class="tag-manager" hidden>
+        <div class="tag-manager-header">
+            <strong>Manage tags</strong>
+            <button type="button" class="btn-close btn-close-sm" id="tagManagerClose" aria-label="Close"></button>
+        </div>
+        <div id="tagManagerBody" class="tag-manager-body"></div>
+        <div class="tag-manager-add">
+            <input type="text" id="newDimName" class="form-control form-control-sm" placeholder="New dimension name">
+            <button type="button" class="btn btn-sm btn-primary" id="addDimBtn">Add</button>
+        </div>
+        <div id="tagManagerError" class="tag-manager-error" hidden></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='tags.js') }}"></script>
+</body>
+</html>
