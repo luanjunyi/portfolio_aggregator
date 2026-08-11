@@ -11,7 +11,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from crawlers.base_crawler import BaseCrawler
-from models.portfolio import Holding
+from models.portfolio import Holding, day_change_consistency_warning
 
 
 class MerrillCrawler(BaseCrawler):
@@ -279,6 +279,10 @@ class MerrillCrawler(BaseCrawler):
                 portfolio_percentage=portfolio_percentage,
                 brokers={self.broker_name: current_value}
             )
+
+            warning = day_change_consistency_warning(holding)
+            if warning:
+                self.log.warning(warning)
 
             self.log.debug(f"Parsed holding: {symbol} - {quantity} @ ${price} (value ${current_value})")
             return holding

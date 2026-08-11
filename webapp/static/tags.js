@@ -37,7 +37,11 @@
     async function loadModel() {
         model = await api("GET", "/api/tag-model");
         if (!model.dimensions.some((d) => d.id === activeDimId)) {
-            activeDimId = model.dimensions.length ? model.dimensions[0].id : null;
+            // Default the Tags column to the "strategy" dimension when present,
+            // otherwise fall back to the first dimension.
+            const preferred = model.dimensions.find((d) => d.name.toLowerCase() === "strategy");
+            activeDimId = preferred ? preferred.id
+                : (model.dimensions.length ? model.dimensions[0].id : null);
         }
         renderDimSelect();
         renderAllCells();

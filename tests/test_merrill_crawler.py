@@ -90,6 +90,8 @@ class MerrillCrawlerParsingTest(unittest.IsolatedAsyncioTestCase):
         # -29.75 per share * 858 shares = -25,525.50
         self.assertAlmostEqual(tsm.day_change_dollars, -25525.50, places=2)
         self.assertAlmostEqual(tsm.day_change_percent, -0.0669, places=4)
+        # previous_close is the prior unit price: 415.17 + 29.75 = 444.92
+        self.assertAlmostEqual(tsm.previous_close, 444.92, places=2)
 
 
 if __name__ == "__main__":

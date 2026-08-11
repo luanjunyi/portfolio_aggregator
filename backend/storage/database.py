@@ -92,6 +92,7 @@ class DatabaseManager:
                     current_value REAL,
                     day_change_percent REAL,
                     day_change_dollars REAL,
+                    previous_close REAL,
                     unrealized_gain_loss REAL,
                     unrealized_gain_loss_percent REAL,
                     portfolio_percentage REAL,
@@ -100,7 +101,14 @@ class DatabaseManager:
                     FOREIGN KEY(date) REFERENCES portfolio_snapshots(date)
                 )
             """)
-            
+
+            # Migration: add previous_close to pre-existing DBs (NULL for old rows).
+            existing_cols = [
+                row[1] for row in conn.execute("PRAGMA table_info(holdings_snapshots)").fetchall()
+            ]
+            if "previous_close" not in existing_cols:
+                conn.execute("ALTER TABLE holdings_snapshots ADD COLUMN previous_close REAL")
+
             conn.commit()
     
     def save_portfolio_snapshot(self, portfolio: Any):
@@ -148,19 +156,20 @@ class DatabaseManager:
                     h.current_value,
                     h.day_change_percent,
                     h.day_change_dollars,
+                    h.previous_close,
                     h.unrealized_gain_loss,
                     h.unrealized_gain_loss_percent,
                     h.portfolio_percentage,
                     json.dumps(h.brokers)
                 ))
-            
+
             cursor.executemany("""
                 INSERT INTO holdings_snapshots (
                     date, symbol, description, quantity, price, unit_cost,
                     cost_basis, current_value, day_change_percent, day_change_dollars,
-                    unrealized_gain_loss, unrealized_gain_loss_percent,
+                    previous_close, unrealized_gain_loss, unrealized_gain_loss_percent,
                     portfolio_percentage, brokers
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, holdings_data)
             
             conn.commit()

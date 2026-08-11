@@ -330,3 +330,9 @@ coverage.xml
 # Local configuration
 local_config.py
 local_settings.py
+
+# DB rotation backups (backend/storage/backup.py)
+backups/
+
+# E*TRADE login debug artifacts
+etrade_debug/

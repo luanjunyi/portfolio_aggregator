@@ -85,6 +85,7 @@
                         </th>
                         <th class="sortable" data-col="description" data-type="string">Description</th>
                         <th class="text-end sortable" data-col="qty" data-type="number">Qty</th>
+                        <th class="text-end sortable" data-col="unit_cost" data-type="number">Unit Cost</th>
                         <th class="text-end sortable" data-col="price" data-type="number">Price</th>
                         <th class="text-end sortable" data-col="base_value" data-type="number">Base Value</th>
                         <th class="text-end sortable" data-col="value" data-type="number">Value</th>
@@ -100,6 +101,7 @@
                             <td class="tags-cell" data-symbol="{{ h.symbol }}"></td>
                             <td data-sort-value="{{ h.description }}"><span class="desc-col" title="{{ h.description }}">{{ h.description }}</span></td>
                             <td class="text-end" data-sort-value="{{ h.s_quantity }}">{{ h.quantity_disp }}</td>
+                            <td class="text-end" data-sort-value="{{ h.s_unit_cost }}">{{ h.unit_cost_disp }}</td>
                             <td class="text-end" data-sort-value="{{ h.s_price }}">{{ h.price_disp }}</td>
                             <td class="text-end" data-sort-value="{{ h.s_cost_basis }}">{{ h.cost_basis_disp }}</td>
                             <td class="text-end fw-bold" data-sort-value="{{ h.s_value }}">{{ h.value_disp }}</td>

@@ -28,6 +28,10 @@ BROKER_CRAWLERS: Sequence[CrawlerType] = (
     EtradeCrawler,
 )
 
+# Each broker is retried this many times before the whole run is failed.
+CRAWLER_MAX_ATTEMPTS = 3
+CRAWLER_RETRY_BACKOFF_SECONDS = 10
+
 
 def _float_sum(values: Iterable[float]) -> float:
     return sum(values, 0.0)
@@ -130,15 +134,51 @@ async def _run_crawler(crawler_cls: CrawlerType) -> CrawlerResult:
         return await crawler.crawl()
 
 
+async def _run_crawler_with_retries(
+    crawler_cls: CrawlerType,
+    attempts: int = CRAWLER_MAX_ATTEMPTS,
+    backoff: float = CRAWLER_RETRY_BACKOFF_SECONDS,
+) -> CrawlerResult:
+    """Run a crawler, retrying transient failures. Each fresh attempt relaunches
+    the browser. Logs the reason for every failed attempt (with traceback) so
+    failures are debuggable. Raises after the final attempt — the caller then
+    fails the whole run rather than saving partial data.
+    """
+    name = crawler_cls.__name__
+    last_error: object = None
+    for attempt in range(1, attempts + 1):
+        try:
+            result = await _run_crawler(crawler_cls)
+            if result.success:
+                if attempt > 1:
+                    log.info(f"{name} succeeded on attempt {attempt}/{attempts}")
+                return result
+            last_error = result.error_message or "crawler returned success=False"
+            log.warning(f"{name} attempt {attempt}/{attempts} failed: {last_error}")
+        except Exception as exc:
+            last_error = exc
+            log.warning(
+                f"{name} attempt {attempt}/{attempts} raised: {type(exc).__name__}: {exc}",
+                exc_info=True,
+            )
+        if attempt < attempts:
+            log.info(f"Retrying {name} in {backoff:.0f}s...")
+            await asyncio.sleep(backoff)
+
+    raise RuntimeError(
+        f"{name} failed after {attempts} attempts; last error: {last_error}. "
+        f"Manual retry/fix needed."
+    )
+
+
 async def fetch_all_positions() -> Portfolio:
     results: List[CrawlerResult] = []
     for crawler_cls in BROKER_CRAWLERS:
-        try:
-            result = await _run_crawler(crawler_cls)
-            results.append(result)
-        except Exception as exc:
-            raise RuntimeError(f"Error running crawler {crawler_cls}: {exc}") from exc
-            
+        # A crawler that fails all retries aborts the whole run: partial
+        # snapshots are not useful, so we save all brokers or nothing.
+        result = await _run_crawler_with_retries(crawler_cls)
+        results.append(result)
+
     combined_holdings = _combine_successful_holdings(results)
     holdings_with_percentages = _assign_portfolio_percentages(combined_holdings)
 
@@ -163,7 +203,10 @@ async def fetch_all_positions() -> Portfolio:
         total_cost_basis=total_cost_basis,
         total_unrealized_gain_loss=total_unrealized,
         total_unrealized_gain_loss_percent=total_unrealized_percent,
-        last_updated=datetime.utcnow(),
+        # Local time, not UTC: the snapshot date must match the local trading
+        # day (run_daily_portfolio uses date.today()). With UTC, an evening run
+        # in a behind-UTC timezone (e.g. PDT) rolls over to tomorrow's date.
+        last_updated=datetime.now(),
         day_change_percent=total_day_change_percent,
         day_change_dollars=total_day_change_dollars,
     )

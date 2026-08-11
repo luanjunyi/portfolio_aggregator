@@ -12,15 +12,19 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pandas_market_calendars as mcal
 from backend.fetch_all_positions import fetch_all_positions
 from backend.storage.database import DatabaseManager
+from backend.storage.backup import backup_database
 
-# Configure logging
+# Configure logging. force=True is required because importing the crawlers
+# (above) triggers base_crawler's own logging.basicConfig() first, which would
+# otherwise make this call a no-op and leave portfolio_cron.log empty.
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler("portfolio_cron.log"),
         logging.StreamHandler(sys.stdout)
-    ]
+    ],
+    force=True,
 )
 log = logging.getLogger("daily_portfolio_run")
 
@@ -48,8 +52,18 @@ async def main():
         portfolio = await fetch_all_positions()
         log.info(f"Successfully fetched portfolio. Total Value: ${portfolio.total_value:,.2f}")
         
-        # 2. Save to database
         db_manager = DatabaseManager()
+
+        # 2. Back up the DB before writing today's snapshot, so the newest
+        #    backup is always the last known-good state. Non-fatal: a failed
+        #    backup must not block the SLA'd data refresh.
+        try:
+            backup_path = backup_database(db_manager.db_path, retention=7)
+            log.info(f"Database backed up to {backup_path}")
+        except Exception as e:
+            log.warning(f"Database backup failed (continuing with snapshot save): {e}")
+
+        # 3. Save to database
         snapshot_date = db_manager.save_portfolio_snapshot(portfolio)
         log.info(f"Saved portfolio snapshot to database for date: {snapshot_date}")
         

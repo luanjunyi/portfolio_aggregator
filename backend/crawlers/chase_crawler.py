@@ -10,7 +10,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from crawlers.base_crawler import BaseCrawler
-from models.portfolio import Holding
+from models.portfolio import Holding, day_change_consistency_warning
 
 
 class ChaseCrawler(BaseCrawler):
@@ -346,8 +346,10 @@ class ChaseCrawler(BaseCrawler):
             price_div = price_cell.find('div', {'data-testid': lambda x: x and x.startswith('price-position-')})
             if price_div:
                 price_text = price_div.get_text(strip=True)
-                # Extract just the first number from complex text like '121.61Loss of -0.51-0.51Loss of -0.42%-0.42%'
+                # Text like '121.61Loss of -0.51-0.51Loss of -0.42%-0.42%':
+                # current price, per-share day change, then day-change percent.
                 price = self._extract_first_price(price_text)
+                reported_day_percent = self._extract_day_change_percent(price_text)
             else:
                 raise ValueError(f"Price cell not found in row for symbol {symbol}")
             
@@ -364,8 +366,12 @@ class ChaseCrawler(BaseCrawler):
                 # On non-trading days, Chase show change as empty cell
                 day_change_dollars = 0.0
             
-            # Calculate day change percent from day_change_dollars / current_value
-            if current_value != 0:
+            # Prefer the broker's own reported day-change percent (parsed from the
+            # price cell, independent of the Day's gain/loss $ column) so it can
+            # audit that column. Fall back to $/value when no percent is shown.
+            if reported_day_percent is not None:
+                day_change_percent = reported_day_percent
+            elif current_value != 0:
                 day_change_percent = day_change_dollars / current_value
             else:
                 raise ValueError(f"Cannot calculate day change percent: current_value is zero for {symbol}")
@@ -409,6 +415,10 @@ class ChaseCrawler(BaseCrawler):
                 brokers={self.broker_name: current_value}
             )
             
+            warning = day_change_consistency_warning(holding)
+            if warning:
+                self.log.warning(warning)
+
             self.log.debug(f"Parsed holding: {symbol} - {quantity} shares @ ${price} = ${market_value}")
             return holding
             
@@ -511,6 +521,23 @@ class ChaseCrawler(BaseCrawler):
         
         raise ValueError(f"No valid price found at start of text: '{price_text}'")
     
+    def _extract_day_change_percent(self, price_text: str) -> Optional[float]:
+        """Extract the day-change percent from the Chase price cell.
+
+        The cell renders as e.g. '121.61Loss of -0.51-0.51Loss of -0.42%-0.42%':
+        current price, per-share day change, then the day-change percent. The
+        percent is reported independently of the Day's gain/loss $ column, so it
+        can be used to audit that column. Returns None when no percent is shown
+        (e.g. non-trading days).
+        """
+        if not price_text:
+            return None
+        matches = re.findall(r'-?\d+(?:\.\d+)?%', price_text)
+        if not matches:
+            return None
+        # The visible and screen-reader copies repeat the same value; any will do.
+        return self._clean_percentage_text(matches[-1])
+
     def sanity_check(self, soup: BeautifulSoup, holdings: List[Holding]) -> None:
         """Compare reported totals on the page with parsed holdings totals."""
         TOTAL_CHECK_TOLERANCE = 0.01

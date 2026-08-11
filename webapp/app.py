@@ -90,6 +90,7 @@ def build_holdings(holding_rows):
                 "description": r["description"],
                 "brokers": brokers,
                 "quantity_disp": f"{r['quantity']:.4f}" if r["quantity"] is not None else "N/A",
+                "unit_cost_disp": fmt_money(r["unit_cost"]),
                 "price_disp": fmt_money(r["price"]),
                 "cost_basis_disp": fmt_money(r["cost_basis"]),
                 "value_disp": fmt_money(r["current_value"]),
@@ -103,6 +104,7 @@ def build_holdings(holding_rows):
                 "accum_pct_disp": fmt_pct(accum_pct),
                 # raw values for client-side sorting
                 "s_quantity": r["quantity"] or 0,
+                "s_unit_cost": r["unit_cost"] or 0,
                 "s_price": r["price"] or 0,
                 "s_cost_basis": r["cost_basis"] or 0,
                 "s_value": r["current_value"] or 0,

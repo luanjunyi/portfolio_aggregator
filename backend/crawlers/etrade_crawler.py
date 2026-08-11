@@ -2,13 +2,15 @@ from typing import List
 import asyncio
 import re
 import random
+import time
+from datetime import datetime
 
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from crawlers.base_crawler import BaseCrawler
-from models.portfolio import Holding
+from models.portfolio import Holding, day_change_consistency_warning
 
 
 class EtradeCrawler(BaseCrawler):
@@ -51,17 +53,32 @@ class EtradeCrawler(BaseCrawler):
         """Login to E*TRADE"""
         self.log.info("Starting E*TRADE login...")
 
+        # Bound every navigation/action so a stalled E*TRADE page fails fast and
+        # is captured, instead of hanging ~15 min (observed under the scheduled
+        # job, where goto over the CDP-attached browser was not timing out).
+        self.page.set_default_navigation_timeout(90000)
+        self.page.set_default_timeout(30000)
+
         # First check if we're already logged in with a valid session
         try:
-            await self.page.goto(self.login_url, wait_until='domcontentloaded')
+            t0 = time.monotonic()
+            self.log.info(f"Navigating to login URL: {self.login_url}")
+            await self.page.goto(self.login_url, wait_until='domcontentloaded', timeout=90000)
+            self.log.info(f"goto returned in {time.monotonic() - t0:.1f}s, url={self.page.url}")
             await self.page.wait_for_load_state('networkidle', timeout=15000)
 
             # If redirected straight to positions page, we're logged in
             if "/portfolios/positions" in self.page.url.lower():
                 self.log.info("Already logged in with stored session!")
                 return True
-        except Exception:
-            pass
+        except Exception as e:
+            # E*TRADE's SPA never reaches 'networkidle', so a ~15s timeout here
+            # is benign and expected. A real stall shows up as the goto itself
+            # taking ~90s (capped above) — captured by the login-form check below.
+            self.log.warning(
+                f"Initial nav to login URL did not settle after {time.monotonic() - t0:.1f}s: "
+                f"{type(e).__name__}: {e}; current url={self.page.url}"
+            )
 
         credentials = self.get_credentials()
         if not credentials:
@@ -78,6 +95,9 @@ class EtradeCrawler(BaseCrawler):
             login_button_selector = '#mfaLogonButton'
 
             if not await self.wait_for_element(username_selector, timeout=20000):
+                # Login form never loaded — capture whatever is on screen
+                # (stall page, block, interstitial) before bailing.
+                await self._save_login_debug("no_login_form")
                 raise RuntimeError(f"Username field not found: {username_selector}")
             if not await self.wait_for_element(password_selector, timeout=20000):
                 raise RuntimeError(f"Password field not found: {password_selector}")
@@ -105,8 +125,12 @@ class EtradeCrawler(BaseCrawler):
 
             try:
                 self.log.info("Waiting for positions page to load...")
-                await self.page.wait_for_url("**/portfolios/positions*", timeout=5 * 60000)
+                await self.page.wait_for_url("**/portfolios/positions*", timeout=90000)
             except Exception as e:
+                # Capture what we're actually stuck on (MFA? CAPTCHA? device
+                # verification?) before giving up.
+                self.log.warning(f"Did not reach positions page; current url={self.page.url}")
+                await self._save_login_debug("after_login_click")
                 raise RuntimeError(f"Error waiting for positions URL: {e}") from e
 
             if "/portfolios/positions" in self.page.url.lower():
@@ -116,6 +140,24 @@ class EtradeCrawler(BaseCrawler):
             raise RuntimeError(f"Login failed - unexpected URL: {self.page.url}")
         except Exception as e:
             raise
+
+    async def _save_login_debug(self, tag: str) -> None:
+        """Capture a screenshot + HTML + URL/title of the current page for debugging."""
+        try:
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            outdir = os.path.join(repo_root, "etrade_debug")
+            os.makedirs(outdir, exist_ok=True)
+            base = os.path.join(outdir, f"etrade_{tag}_{ts}")
+            title = await self.page.title()
+            await self.page.screenshot(path=base + ".png", full_page=True)
+            with open(base + ".html", "w") as f:
+                f.write(await self.page.content())
+            self.log.warning(
+                f"Saved E*TRADE login debug [{tag}]: url={self.page.url} title={title!r} -> {base}.png/.html"
+            )
+        except Exception as e:
+            self.log.warning(f"Failed to save E*TRADE login debug [{tag}]: {type(e).__name__}: {e}")
 
     async def parse_portfolio_html(self) -> List[Holding]:
         """Parse the E*TRADE positions page.
@@ -223,22 +265,26 @@ class EtradeCrawler(BaseCrawler):
             # Total cost can't be displayed in the all positions view, so we need to calculate it
             cost_basis = quantity * unit_cost
 
-            holding_list.append(
-                Holding(
-                    symbol=symbol,
-                    description=description,
-                    quantity=quantity,
-                    price=price,
-                    unit_cost=unit_cost,
-                    cost_basis=cost_basis,
-                    current_value=current_value,
-                    day_change_percent=day_change_percent,
-                    day_change_dollars=day_change_dollars,
-                    unrealized_gain_loss=unrealized_gain_loss,
-                    unrealized_gain_loss_percent=unrealized_gain_loss_percent,
-                    brokers={self.broker_name: current_value},
-                )
+            holding = Holding(
+                symbol=symbol,
+                description=description,
+                quantity=quantity,
+                price=price,
+                unit_cost=unit_cost,
+                cost_basis=cost_basis,
+                current_value=current_value,
+                day_change_percent=day_change_percent,
+                day_change_dollars=day_change_dollars,
+                unrealized_gain_loss=unrealized_gain_loss,
+                unrealized_gain_loss_percent=unrealized_gain_loss_percent,
+                brokers={self.broker_name: current_value},
             )
+
+            warning = day_change_consistency_warning(holding)
+            if warning:
+                self.log.warning(warning)
+
+            holding_list.append(holding)
 
         # Perform sanity check
         await self.sanity_check(holding_list)
