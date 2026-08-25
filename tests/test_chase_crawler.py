@@ -18,12 +18,16 @@ def _crawler() -> ChaseCrawler:
     return crawler
 
 
-def _row(price_cell_text: str, market_value: str, day_gain: str) -> "BeautifulSoup":
+def _row(price_cell_text: str, market_value: str, day_gain: str, insight_indicator: bool = False) -> "BeautifulSoup":
+    if insight_indicator:
+        price_td = f'<td><div data-testid="position-0-insight-indicator">{price_cell_text}</div></td>'
+    else:
+        price_td = f'<td><div data-testid="price-position-AAPL">{price_cell_text}</div></td>'
     html = f"""
     <tr data-testid="position-AAPL">
         <td><a data-testid="symbol-position-AAPL">AAPL</a></td>
         <td>Apple Inc</td>
-        <td><div data-testid="price-position-AAPL">{price_cell_text}</div></td>
+        {price_td}
         <td>{market_value}</td>
         <td>{day_gain}</td>
         <td>500.00</td>
@@ -65,6 +69,13 @@ class ChaseDayChangePercentTest(unittest.TestCase):
         # No percent shown; day gain empty -> 0.0; percent falls back to $/value.
         holding = _crawler()._parse_position_row(_row("100.00", "10000.00", ""))
         self.assertEqual(holding.day_change_percent, 0.0)
+
+    def test_insight_indicator_format_parses_correctly(self):
+        holding = _crawler()._parse_position_row(
+            _row(PRICE_CELL, "10000.00", "-42.00", insight_indicator=True)
+        )
+        self.assertAlmostEqual(holding.price, 100.00, places=2)
+        self.assertAlmostEqual(holding.day_change_percent, -0.0042, places=4)
 
 
 if __name__ == "__main__":

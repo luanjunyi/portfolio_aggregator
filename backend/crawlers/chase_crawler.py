@@ -277,7 +277,7 @@ class ChaseCrawler(BaseCrawler):
     async def parse_portfolio_html(self, html: str) -> List[Holding]:
         """Parse Chase portfolio HTML to extract holdings"""
         self.log.info("Parsing HTML for all holdings...")
-        
+
         soup = self.parse_html_with_soup(html)
         holdings = []
         
@@ -344,10 +344,10 @@ class ChaseCrawler(BaseCrawler):
             # Extract price from third cell (extract just the price from complex text)
             price_cell = cells[2]
             price_div = price_cell.find('div', {'data-testid': lambda x: x and x.startswith('price-position-')})
+            if not price_div:
+                price_div = price_cell.find('div', {'data-testid': lambda x: x and x.endswith('-insight-indicator')})
             if price_div:
                 price_text = price_div.get_text(strip=True)
-                # Text like '121.61Loss of -0.51-0.51Loss of -0.42%-0.42%':
-                # current price, per-share day change, then day-change percent.
                 price = self._extract_first_price(price_text)
                 reported_day_percent = self._extract_day_change_percent(price_text)
             else:
